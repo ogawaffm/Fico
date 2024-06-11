@@ -1,0 +1,10 @@
+package com.ogawa.fico.performance.logging.building;
+
+import com.ogawa.fico.performance.logging.messageset.BaseMessageSetBuilderInterface;
+
+public interface CommonCurrentStageBuilder<CURR_BUILDER, BUILD_RESULT> extends
+    BaseMessageSetBuilderInterface<CURR_BUILDER> {
+
+    BUILD_RESULT build();
+
+}

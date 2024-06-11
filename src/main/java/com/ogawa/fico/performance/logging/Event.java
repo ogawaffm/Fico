@@ -1,0 +1,18 @@
+package com.ogawa.fico.performance.logging;
+
+public enum Event {
+    ACTION_START,
+    ACTION_FINISH,
+    LOGGER_CLOSE,
+    ERROR,
+    ACTION_ABORT,
+    STEP_START,
+    STEP_FINISH,
+    ADJUSTMENT_START,
+    ADJUSTMENT_FINISH,
+    ERROR_CORRECTION_START,
+    ERROR_CORRECTION_FINISH,
+    BATCH_START,
+    BATCH_FINISH
+
+}

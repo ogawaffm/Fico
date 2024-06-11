@@ -42,7 +42,7 @@ public class ExtendedExecutorCompletionService<V> implements CompletionService<V
      */
     public ExtendedExecutorCompletionService(@NonNull ExtendedThreadPoolExecutor extendedThreadPoolExecutor) {
         this.extendedThreadPoolExecutor = extendedThreadPoolExecutor;
-        this.completionQueue = new LinkedBlockingQueue<ExtendedFutureTask<V>>();
+        this.completionQueue = new LinkedBlockingQueue<>();
     }
 
     /**
@@ -70,7 +70,7 @@ public class ExtendedExecutorCompletionService<V> implements CompletionService<V
      */
     public ExtendedFutureTask<V> submit(@NonNull Callable<V> task) {
         ExtendedFutureTask<V> f = extendedThreadPoolExecutor.newTaskFor(task);
-        extendedThreadPoolExecutor.execute(new QueueingFuture<V>(f, completionQueue));
+        extendedThreadPoolExecutor.execute(new QueueingFuture<>(f, completionQueue));
         return f;
     }
 
@@ -80,7 +80,7 @@ public class ExtendedExecutorCompletionService<V> implements CompletionService<V
      */
     public ExtendedFutureTask<V> submit(@NonNull Runnable task, V result) {
         ExtendedFutureTask<V> f = extendedThreadPoolExecutor.newTaskFor(task, result);
-        extendedThreadPoolExecutor.execute(new QueueingFuture<V>(f, completionQueue));
+        extendedThreadPoolExecutor.execute(new QueueingFuture<>(f, completionQueue));
         return f;
     }
 
