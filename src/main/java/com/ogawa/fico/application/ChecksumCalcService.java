@@ -1,9 +1,5 @@
 package com.ogawa.fico.application;
 
-
-import static com.ogawa.fico.db.Util.SELECT_ASTERISK_MARKED_DUPLICATE_CANDIDATES;
-import static java.util.Comparator.naturalOrder;
-
 import com.ogawa.fico.checksum.FileChecksumBuilder;
 import com.ogawa.fico.multithreading.ExtendedExecutorCompletionService;
 import com.ogawa.fico.multithreading.ExtendedFutureTask;
@@ -11,31 +7,29 @@ import com.ogawa.fico.multithreading.ExtendedThreadFactory;
 import com.ogawa.fico.multithreading.ExtendedThreadPoolExecutor;
 import com.ogawa.fico.multithreading.ThreadPoolExecutorStatistics;
 import com.ogawa.fico.multithreading.ThreadUtils;
-import com.ogawa.fico.db.Util;
 import java.sql.Connection;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class ChecksumCalcService {
 
-    private void markDuplicateCandidates(Connection connection) {
-        Date start = new Date();
-        System.out.println("Marking duplicate candidates...");
-        int markedRowCount = Util.createDuplicateCandidates(connection);
-        System.out.println("markedRowCount: " + markedRowCount + " in "
-            + (new Date().getTime() - start.getTime()) / 1000 + " s");
+    long fileCount = 0;
+    long dirCount = 0;
+
+    public long getFileCount() {
+        return fileCount;
+    }
+
+    public long getDirCount() {
+        return dirCount;
     }
 
     private Comparator<FileBean> getFileBeanPriorityComparator() {
-        Comparator<FileBean> fileSizeComparator
-            = Comparator.comparing(FileBean::getSize);
+
+        Comparator<FileBean> fileSizeComparator = Comparator.comparing(FileBean::getSize);
 
         Comparator<FileBean> reversedFileSizeAndPathComparator =
             fileSizeComparator.reversed().thenComparing(FileBean::getFullFileName);
@@ -64,12 +58,6 @@ public class ChecksumCalcService {
             new LinkedBlockingQueue<ExtendedFutureTask<CallableFileChecksummer>>(2000),
             new ExtendedThreadFactory("from myFactory", "myThread")
         );
-//        return new ExtendedThreadPoolExecutor(
-//            ThreadUtils.getCores(), ThreadUtils.getCores() * 3, 0L, TimeUnit.MILLISECONDS,
-//            new PriorityBlockingQueue<ExtendedFutureTask<CallableFileChecksummer>>(11,
-//                getFutureTaskPriorityComparator()),
-//            new ExtendedThreadFactory("from myFactory", "myThread")
-//        );
     }
 
     private void showStatistics(ExtendedThreadPoolExecutor executor, ThreadPoolExecutorStatistics statistics) {
@@ -101,9 +89,7 @@ public class ChecksumCalcService {
 
     }
 
-    public long sum(Connection connection, int scanId) {
-
-        markDuplicateCandidates(connection);
+    public long calcFileChecksums(Connection connection) {
 
         ExtendedThreadPoolExecutor executor = getExecutor();
 
@@ -115,14 +101,12 @@ public class ChecksumCalcService {
             = new ExtendedExecutorCompletionService<>(executor);
 
         ChecksumWriteService checksumWriteService = new ChecksumWriteService(executorCompletionService, executor,
-            connection, scanId);
+            connection);
 
         new Thread(checksumWriteService).start();
 
-        FileBeanProvider fileBeanProvider = new FileBeanProvider(connection,
-            SELECT_ASTERISK_MARKED_DUPLICATE_CANDIDATES);
+        FileBeanProvider fileBeanProvider = new FileBeanProvider(connection, true);
 
-        //CallableFileChecksummer callableFileChecksummer;
         Callable<FileBean> callableFileChecksummer;
 
         ExtendedFutureTask<FileBean> futureTask = null;
@@ -170,6 +154,16 @@ public class ChecksumCalcService {
         }
 
         return fileCount;
+
+    }
+
+    public void calc(Connection connection) {
+
+        FileCandidateMarker.mark(connection);
+        fileCount = calcFileChecksums(connection);
+
+        dirCount = DirChecksumCalculator.calc(connection);
+
 
     }
 

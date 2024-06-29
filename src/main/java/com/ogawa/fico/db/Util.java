@@ -1,35 +1,23 @@
 package com.ogawa.fico.db;
 
+import com.ogawa.fico.application.Config;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Util {
-
-    public static Connection getTcpConnection(String databaseName) {
-        Connection connection = null;
-        try {
-            connection = DriverManager.getConnection("jdbc:h2:tcp://localhost/~/" + databaseName, "sa", "");
-        } finally {
-            return connection;
-        }
-    }
-
-    public static Connection getFileConnection(String databaseName) {
-        Connection connection = null;
-        try {
-            connection = DriverManager.getConnection("jdbc:h2:~/" + databaseName, "sa", "");
-        } finally {
-            return connection;
-        }
-    }
 
     public static Connection getConnection(String databaseName) {
         Connection connection;
@@ -73,73 +61,18 @@ public class Util {
 
     }
 
-
-    static private final String MARK_DUPLICATE_CANDIDATES =
-        "UPDATE FILE\n" +
-            "SET CHECKSUM = X'00'\n" +
-            "WHERE FILE_ID IN (\n" +
-            "    SELECT FILE_ID\n" +
-            "    FROM FILE\n" +
-            "    JOIN (\n" +
-            "        SELECT NAME, SIZE\n" +
-            "        FROM FILE \n" +
-            "        GROUP BY SIZE, NAME\n" +
-            "        HAVING SIZE > 0 AND COUNT(*) > 1\n" +
-            "    ) DUPLICATES\n" +
-            "    ON FILE.NAME = DUPLICATES.NAME AND FILE.SIZE = DUPLICATES.SIZE\n" +
-            ")\n";
-
-    /*
-       Generated column "PUBLIC.FILE.FILE_ID" cannot be assigned; SQL statement:
-       UPDATE "PUBLIC"."FILE" SET "FILE_ID"=? ,"NAME"=? ,"PATH"=? ,"CHECKSUM"=?  WHERE "FILE_ID"=? [90154-224]
-     */
-    static private final String SELECT_MARKED_DUPLICATE_CANDIDATES =
-        "SELECT SCAN_ID, DIR_ID, NAME, PATH, CHECKSUM FROM FILE\n" +
-            "WHERE CHECKSUM = X'00'\n\n";
-
-
-    /**
-     * Takes about 2 minutes to run logEvent 1 million rows
-     *
-     * @param connection
-     * @return
-     */
-    static public int markDuplicateCandidates(Connection connection) {
+    static public long execAndReturnRowsAffected(PreparedStatement preparedStatement) {
 
         try {
 
-            PreparedStatement preparedStatement = connection.prepareStatement(MARK_DUPLICATE_CANDIDATES);
-            return execAndReturnRowsAffected(preparedStatement);
+            return preparedStatement.executeLargeUpdate();
 
         } catch (SQLException sqlException) {
             throw new RuntimeException(sqlException);
         }
     }
 
-    static public ResultSet getMarkedDuplicateCandidates(Connection connection) {
-
-        try {
-
-            Statement statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            return statement.executeQuery(SELECT_MARKED_DUPLICATE_CANDIDATES);
-
-        } catch (SQLException sqlException) {
-            throw new RuntimeException(sqlException);
-        }
-    }
-
-    static public int execAndReturnRowsAffected(PreparedStatement preparedStatement) {
-
-        try {
-
-            return preparedStatement.executeUpdate();
-
-        } catch (SQLException sqlException) {
-            throw new RuntimeException(sqlException);
-        }
-    }
-
-    static public int execAndReturnGeneratedKey(PreparedStatement preparedStatement) {
+    static public long execAndReturnGeneratedKey(PreparedStatement preparedStatement) {
 
         try {
 
@@ -147,7 +80,7 @@ public class Util {
 
             try (ResultSet keys = preparedStatement.getGeneratedKeys()) {
                 keys.next();
-                return keys.getInt(1);
+                return keys.getLong(1);
             }
 
         } catch (SQLException sqlException) {
@@ -155,47 +88,102 @@ public class Util {
         }
     }
 
-    static public final String SELECT_ASTERISK_MARKED_DUPLICATE_CANDIDATES =
-        "SELECT * FROM FILE WHERE CHECKSUM = X'00'\n\n";
 
-    static public final String SELECT_MARKED_DUPLICATE_CANDIDATES_WITH_FILE_ID =
-        "SELECT FILE_ID, SCAN_ID, DIR_ID, NAME, PATH, CHECKSUM FROM FILE\n" +
-            "WHERE CHECKSUM = X'00'\n\n";
+    /**
+     * Reads the sql file from the resources/sql folder and returns the sql string
+     *
+     * @param sqlName name of the sql file in the resources/sql folder without the .sql extension
+     * @return the sql string from the file
+     */
+    public static String getSql(String sqlName) {
+        return Config.getResource("sql/" + sqlName + ".sql");
+    }
 
-    static private final String CREATE_DUPLICATE_CANDIDATES =
-        "CREATE LOCAL TEMPORARY TABLE FILE_DUPLICATE AS\n"
-            + "SELECT FILE_ID\n"
-            + "FROM FILE\n"
-            + "JOIN (\n"
-            + "        SELECT NAME, SIZE\n"
-            + "        FROM FILE \n"
-            + "        GROUP BY SIZE, NAME\n"
-            + "        HAVING SIZE > 0 AND COUNT(*) > 1\n"
-            + "    ) DUPLICATES\n"
-            + "ON FILE.NAME = DUPLICATES.NAME AND FILE.SIZE = DUPLICATES.SIZE\n";
+    public static void executeBatch(Connection connection, String batchScriptName) throws SQLException {
 
-    static private final String MARK_DUPLICATE_CANDIDATES_2 =
-        "UPDATE FILE\n"
-            + "SET CHECKSUM = X'00'\n"
-            + "WHERE FILE_ID IN (\n"
-            + "    SELECT FILE_ID\n"
-            + "    FROM FILE_DUPLICATE\n"
-            + ")\n";
+        Statement statement = connection.createStatement();
 
+        String batch = Util.getSql(batchScriptName);
 
-    static public int createDuplicateCandidates(Connection connection) {
+        String[] sqls = batch.split("[ \\t]*\\n[ \\t]*\\n");
 
+        int scriptNo = 0;
         try {
-
-            PreparedStatement preparedStatement;
-            preparedStatement = connection.prepareStatement(CREATE_DUPLICATE_CANDIDATES);
-            execAndReturnRowsAffected(preparedStatement);
-            preparedStatement = connection.prepareStatement(MARK_DUPLICATE_CANDIDATES_2);
-            return execAndReturnRowsAffected(preparedStatement);
-
+            for (String sql : sqls) {
+                scriptNo++;
+                statement.execute(sql);
+            }
         } catch (SQLException sqlException) {
-            throw new RuntimeException(sqlException);
+            if (sqls.length > 1) {
+                throw new SQLException("Error executing script no #" + scriptNo + " of " + batchScriptName,
+                    sqlException);
+            } else {
+                throw sqlException;
+            }
+        } finally {
+            statement.close();
+        }
+
+    }
+
+    static public void closeSilently(ResultSet resultSet) {
+        try {
+            resultSet.close();
+        } catch (SQLException ignore) {
         }
     }
 
+    static public void closeSilently(Statement statement) {
+        try {
+            statement.close();
+        } catch (SQLException ignore) {
+        }
+    }
+
+    static public void closeSilently(Connection connection) {
+        try {
+            connection.close();
+        } catch (SQLException ignore) {
+        }
+    }
+
+    static String getDirectoryName(Path path) {
+        if (path == null || path.getParent() == null) {
+            return "";
+        } else {
+            return path.getParent().toString();
+        }
+    }
+
+    static String getFilename(Path path) {
+        if (path == null || path.getFileName() == null) {
+            return "";
+        } else {
+            return path.getFileName().toString();
+        }
+    }
+
+    static Path getFullPath(String path, String name) {
+        if (path == null || name == null) {
+            return null;
+        } else {
+            return Path.of(path, name);
+        }
+    }
+
+    static Timestamp toTimestamp(LocalDateTime localDateTime) {
+        if (localDateTime == null) {
+            return null;
+        } else {
+            return Timestamp.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+        }
+    }
+
+    static LocalDateTime toLocalDateTime(Timestamp timestamp) {
+        if (timestamp == null) {
+            return null;
+        } else {
+            return timestamp.toLocalDateTime();
+        }
+    }
 }

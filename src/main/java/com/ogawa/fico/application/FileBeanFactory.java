@@ -1,5 +1,6 @@
 package com.ogawa.fico.application;
 
+import com.ogawa.fico.db.Sequence;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
@@ -8,7 +9,16 @@ import lombok.NonNull;
 
 public class FileBeanFactory {
 
-    public static FileBean create(Long fileId, Long dirId, long scanId, Path filename, long size,
+    private final long scanId;
+
+    private final Sequence fileIdSequence;
+
+    public FileBeanFactory(long scanId, Sequence fileIdSequence) {
+        this.scanId = scanId;
+        this.fileIdSequence = fileIdSequence;
+    }
+
+    static public FileBean create(Long fileId, Long dirId, long scanId, Path filename, Long size,
         LocalDateTime lastWriteAccess, byte[] checksum, LocalDateTime calcStarted, LocalDateTime calcFinished) {
 
         FileBean fileBean = new FileBean();
@@ -25,30 +35,22 @@ public class FileBeanFactory {
         return fileBean;
     }
 
-    public static FileBean create(Long parentDirId, int scanId,
+    public FileBean create(Long parentDirId, long scanId,
         @NonNull Path filename,
         @NonNull BasicFileAttributes attributes) {
 
         return create(
-            null,
+            fileIdSequence.next(),
             parentDirId,
             scanId,
             filename,
-            attributes.isDirectory() ? -1 : attributes.size(),
+            attributes.isDirectory() ? null : attributes.size(),
             attributes.lastModifiedTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(),
             null,
             null,
             null
         );
 
-    }
-
-    public static String dirOfPath(Path path) {
-        return path.getParent().toString();
-    }
-
-    public static String nameOfPath(Path path) {
-        return path.getFileName().toString();
     }
 
 }

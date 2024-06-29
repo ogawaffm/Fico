@@ -5,14 +5,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class FileIdSequenceFactory {
+public abstract class ScanIdSequenceFactory {
 
     /**
      * Map of scanId to max file id for the scanId
      */
-    static final private Map<Long, AtomicLong> scanIdFileId = new ConcurrentHashMap<>();
+    static final private Map<Integer, AtomicLong> scanIdFileId = new ConcurrentHashMap<>();
 
-    static public Sequence getFileIdSequence(Connection connection, long scanId) {
+    static public Sequence getFileIdSequence(Connection connection, int scanId) {
 
         AtomicLong fileId = scanIdFileId.get(scanId);
 
@@ -43,7 +43,7 @@ public abstract class FileIdSequenceFactory {
      * @param connection
      * @return max file id for the current scanId or 0 if no file exists for the current scanId
      */
-    static private long getMaxUsedFileId(Connection connection, long scanId) {
+    static private long getMaxUsedFileId(Connection connection, int scanId) {
         return Util.getValue(connection,
             "SELECT COALESCE(MAX(FILE_ID), 0) FROM FILE WHERE SCAN_ID = " + scanId,
             0L);
@@ -55,7 +55,7 @@ public abstract class FileIdSequenceFactory {
      * @param scanId
      * @return
      */
-    static private long getFileIdZero(long scanId) {
+    static private long getFileIdZero(int scanId) {
         // long 9.223.372.036.854.775.807 (~ 19 digits)
         // => 922.337 + 2.036.854.775.807 scanId (~ 6 digits) + fileId (~ 13 digits)
         return (scanId - 1) * 10_000_000_000_000L;

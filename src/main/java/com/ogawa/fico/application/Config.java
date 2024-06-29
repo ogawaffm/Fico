@@ -1,56 +1,78 @@
 package com.ogawa.fico.application;
 
+import com.ogawa.fico.command.CommandLineParser;
+import com.ogawa.fico.db.Util;
+import com.ogawa.fico.exception.CommandLineError;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 public class Config {
 
-    private final String databaseName;
-    private final Path rootPath;
+    static private String databaseName;
 
-    public Config(String[] args) {
-        checkAndAnalyse(args);
-        databaseName = args[0];
-        rootPath = Path.of(args[1]);
-    }
-
-    private static void help(boolean error) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("FiCo 1.0\n");
-        if (error) {
-            sb.append("\ncommandline error.\n\ninvoke:\n");
-        }
-        sb.append("\n");
-        sb.append("FiCo DatabaseName RootPath");
-        sb.append("\n");
-        sb.append("    with \n");
-        sb.append("        DatabaseName - name of the h2 database to connect to logEvent localhost\n");
-        sb.append("        RootPath - root path to walk scanning from\n");
-        sb.append("\n");
-        sb.append("    for example \n");
-        sb.append("        Fico files c:\\\n");
-        sb.append("        fico files \\\\MYNAS\\SHARENAME\n");
-
-        if (error) {
-            System.err.println(sb);
+    static public String getDefaultDatabaseName() {
+        if (System.getenv("FICO_DB") != null) {
+            return System.getenv("FICO_DB");
         } else {
-            System.out.println(sb);
+            return "fico";
         }
     }
 
-    private void checkAndAnalyse(String[] args) {
-        if (args.length != 2) {
-            help(true);
-            System.exit(1);
+    static public void setDatabaseName(String databaseName) {
+        Config.databaseName = databaseName;
+    }
+
+    static public String getDatabaseName() {
+        if (databaseName == null) {
+            return getDefaultDatabaseName();
+        } else {
+            return databaseName;
         }
     }
 
-    public String getDatabaseName() {
-        return databaseName;
+    static public boolean isDatabaseSetByArgument() {
+        return databaseName != null;
     }
 
-    public Path getRootPath() {
-        return rootPath;
-    }
+    public static String getResource(String filename) {
 
+        int bufferSize = 8192;
+        char[] buffer = new char[bufferSize];
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        InputStream inputStream = Util.class.getClassLoader().getResourceAsStream(filename);
+
+        if (inputStream == null) {
+            throw new RuntimeException("Could not find file " + filename);
+        }
+
+        try (Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+
+            for (int numRead; (numRead = reader.read(buffer, 0, buffer.length)) > 0; ) {
+                stringBuilder.append(buffer, 0, numRead);
+            }
+
+        } catch (IOException ioException) {
+            throw new RuntimeException("Could not read file " + filename, ioException);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException ioException) {
+                throw new RuntimeException("Could not close file " + filename, ioException);
+            }
+        }
+
+        return stringBuilder.toString();
+
+    }
 
 }

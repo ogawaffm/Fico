@@ -1,5 +1,8 @@
 package com.ogawa.fico.db;
 
+import static org.h2.api.ErrorCode.TABLE_OR_VIEW_ALREADY_EXISTS_1;
+
+import com.ogawa.fico.exception.ModelError;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -22,92 +25,36 @@ public class Model {
         }
     }
 
-    static private final String CREATE_MODEL =
-        "" +
-            "DROP VIEW SCAN_STAT IF EXISTS\n" +
-            "\n" +
-            "DROP TABLE FILE IF EXISTS\n" +
-            "\n" +
-            "DROP TABLE SCAN IF EXISTS\n" +
-            "\n" +
-            "CREATE TABLE SCAN (\n" +
-            "    SCAN_ID       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n" +
-            "    ROOT          VARCHAR(512) NOT NULL,\n" +
-            "    STARTED       TIMESTAMP,\n" +
-            "    FINISHED      TIMESTAMP\n" +
-            ")\n" +
-            "\n" +
-
-            "CREATE TABLE FILE (\n" +
-            "    FILE_ID           BIGINT PRIMARY KEY,\n" +
-            "    DIR_ID            BIGINT,\n" +
-            "    SCAN_ID           BIGINT NULL,\n" +
-            "    PATH              VARCHAR(512) NOT NULL,\n" +
-            "    NAME              VARCHAR(512) NOT NULL,\n" +
-            "    SIZE              BIGINT NOT NULL,\n" +
-            "    LAST_WRITE_ACCESS TIMESTAMP NOT NULL,\n" +
-            "    CHECKSUM          VARBINARY(32) DEFAULT X'0000000000000000000000000000000000000000000000000000000000000000',\n"
-            +
-            "    CALC_STARTED      TIMESTAMP,\n" +
-            "    CALC_FINISHED     TIMESTAMP\n" +
-            ")\n" +
-            "\n" +
-  /*          "ALTER TABLE FILE ADD FOREIGN KEY (DIR_ID) REFERENCES FILE (FILE_ID) ON DELETE CASCADE\n" +
-            "\n" +
-*/            "ALTER TABLE FILE ADD FOREIGN KEY (SCAN_ID) REFERENCES SCAN (SCAN_ID) ON DELETE CASCADE\n" +
-            "\n" +
-            "CREATE UNIQUE INDEX SCAN_ID_DIR_ID_NAME ON FILE (SCAN_ID, DIR_ID, NAME)\n" +
-            "\n" +
-            "CREATE INDEX NAME ON FILE (NAME)\n" +
-            "\n" +
-            "CREATE INDEX SIZE ON FILE (SIZE)\n" +
-            "\n" +
-            "CREATE INDEX LAST_WRITE_ACCESS ON FILE (LAST_WRITE_ACCESS)\n" +
-            "\n" +
-            "CREATE INDEX CHECKSUM ON FILE (CHECKSUM)\n" +
-            "\n" +
-            "CREATE INDEX SIZE_NAME ON FILE (SIZE, NAME)\n" +
-            "\n" +
-            "CREATE INDEX EQUAL ON FILE (SIZE, NAME, CHECKSUM)\n" +
-            "\n" +
-            "CREATE VIEW SCAN_STAT AS (\n" +
-            "    SELECT SCAN.SCAN_ID SCAN_ID, ROOT, STARTED, FINISHED,\n" +
-            "    SUM(CASE WHEN SIZE = -1 THEN NULL ELSE SIZE END) AS SIZE,\n" +
-            "        SUM(CASE WHEN SIZE = -1 THEN 1 ELSE 0 END) AS DIR_COUNT,\n" +
-            "        SUM(CASE WHEN SIZE = -1 THEN 0 ELSE 1 END) AS FILE_COUNT,\n" +
-            "        MIN(LAST_WRITE_ACCESS) AS MIN_LAST_WRITE_ACCESS, \n" +
-            "        MAX(LAST_WRITE_ACCESS) AS MAX_LAST_WRITE_ACCESS,\n" +
-            "        COUNT(DISTINCT \n" +
-            "            CASE WHEN CHECKSUM = X'0000000000000000000000000000000000000000000000000000000000000000'\n" +
-            "                      OR CHECKSUM = X'00' THEN NULL ELSE CHECKSUM END\n" +
-            "        ) AS CHECKSUM_COUNT_DISTINCT,\n" +
-            "        COUNT(\n" +
-            "            CASE WHEN CHECKSUM = X'0000000000000000000000000000000000000000000000000000000000000000'\n" +
-            "                      OR CHECKSUM = X'00' THEN NULL ELSE CHECKSUM END\n" +
-            "        ) AS CHECKSUM_COUNT_ALL,\n" +
-            "        MIN(CALC_STARTED) AS FIRST_CHECKSUM_FINISHED,\n" +
-            "        MAX(CALC_FINISHED) AS LAST_CHECKSUM_FINISHED\n" +
-            "    FROM SCAN\n" +
-            "    JOIN FILE\n" +
-            "        ON (SCAN.SCAN_ID = FILE.SCAN_ID)\n" +
-            "    GROUP BY SCAN.SCAN_ID, ROOT, STARTED, FINISHED\n" +
-            ")\n" +
-            "\n";
-
-
-    public void createModel() throws SQLException {
-
-        if (true || !tableExists("SCAN")) {
-
-            Statement statement = connection.createStatement();
-
-            String[] sqls = CREATE_MODEL.split("\\n\\n");
-
-            for (String sql : sqls) {
-                System.out.println(sql);
-                statement.execute(sql);
+    public void create() {
+        try {
+            Util.executeBatch(connection, "CreateModel");
+        } catch (SQLException sqlException) {
+            if (sqlException.getErrorCode() == TABLE_OR_VIEW_ALREADY_EXISTS_1) {
+                throw new ModelError("Model already exists. Drop model first and create again or reset model.");
+            } else {
+                throw new RuntimeException(sqlException);
             }
+        }
+    }
 
+    public void drop() {
+        try {
+            Util.executeBatch(connection, "DropModel");
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
+        }
+    }
+
+    public void reset() {
+        drop();
+        create();
+    }
+
+    public void close() {
+        try {
+            connection.close();
+        } catch (SQLException sqlException) {
+            throw new RuntimeException(sqlException);
         }
     }
 

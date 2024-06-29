@@ -1,14 +1,12 @@
 package com.ogawa.fico.application;
 
-import static com.ogawa.fico.db.FileRowMapper.createFromRow;
-
+import com.ogawa.fico.db.FileRowReader;
+import com.ogawa.fico.db.Util;
 import com.ogawa.fico.jdbc.RowIterator;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.ZoneId;
 import java.util.Iterator;
 
 public class FileBeanProvider implements Iterator<FileBean>, AutoCloseable {
@@ -17,7 +15,20 @@ public class FileBeanProvider implements Iterator<FileBean>, AutoCloseable {
 
     private final RowIterator rowIterator;
 
-    FileBeanProvider(Connection connection, String sql) {
+    static private final String SELECT_MARKED_DUPLICATE_CANDIDATES = "SelectMarkedDuplicateCandidates";
+
+    FileBeanProvider(Connection connection, boolean markedFiledOnly) {
+
+        String sql;
+
+        if (markedFiledOnly) {
+            sql = Util.getSql(SELECT_MARKED_DUPLICATE_CANDIDATES);
+        } else {
+            sql = "SELECT FILE_ID, SCAN_ID, DIR_ID, PATH, NAME, SIZE, LAST_WRITE_ACCESS, "
+                + "CHECKSUM, CALC_STARTED, CALC_FINISHED\n"
+                + "FROM FILE\n";
+        }
+
         try {
             this.preparedStatement = connection.prepareStatement(
                 sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
@@ -36,7 +47,7 @@ public class FileBeanProvider implements Iterator<FileBean>, AutoCloseable {
     @Override
     public FileBean next() {
         Object[] row = rowIterator.next();
-        return createFromRow(row);
+        return FileRowReader.createFromRow(row);
     }
 
     public void close() {

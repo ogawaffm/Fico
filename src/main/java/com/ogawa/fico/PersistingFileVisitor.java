@@ -3,32 +3,47 @@ package com.ogawa.fico;
 import com.ogawa.fico.application.FileBean;
 import com.ogawa.fico.application.FileBeanFactory;
 import com.ogawa.fico.db.FileRowCreator;
-import com.ogawa.fico.db.FileRowMapper;
+import com.ogawa.fico.db.Sequence;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.sql.Connection;
 import java.util.Objects;
 import java.util.Stack;
 
 public class PersistingFileVisitor implements FileVisitor<Path> {
 
     private final Path path;
+
+    private final FileBeanFactory fileBeanFactory;
     private final FileRowCreator fileRowCreator;
-    private final int scanId;
+    private final long scanId;
 
     private Long dirId = null;
 
     private Stack<Long> dirIdStack = new Stack<>();
 
-    public PersistingFileVisitor(int scanId, Path path, FileRowCreator fileRowCreator) {
+    private long fileCount = 0;
+    private long dirCount = 0;
+
+    public PersistingFileVisitor(long scanId, Path path, Sequence fileIdSequence, FileRowCreator fileRowCreator) {
 
         this.scanId = scanId;
         this.path = path;
         this.fileRowCreator = fileRowCreator;
+        this.fileBeanFactory = new FileBeanFactory(scanId, fileIdSequence);
 
+    }
+
+    public long getFileCount() {
+        return fileCount;
+    }
+
+    public long getDirCount() {
+        return dirCount;
     }
 
     public void walk() throws IOException {
@@ -48,14 +63,16 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) {
 
-        FileBean fileBean = FileBeanFactory.create(dirId, scanId, dir, attributes);
-        Long fileId = fileRowCreator.create(fileBean);
+        FileBean fileBean = fileBeanFactory.create(dirId, scanId, dir, attributes);
+        fileRowCreator.create(fileBean);
 
         dirIdStack.push(dirId);
 
-        System.out.println("pre  " + fileId + ":" + (dirId == null ? -1 : dirId) + " " + dir);
+        System.out.println("pre  " + fileBean.getFileId() + ":" + (dirId == null ? -1 : dirId) + " " + dir);
 
-        dirId = fileId;
+        dirId = fileBean.getFileId();
+
+        dirCount++;
 
         return FileVisitResult.CONTINUE;
 
@@ -72,10 +89,18 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
         if (!attributes.isDirectory()) {
 
-            FileBean fileBean = FileBeanFactory.create(dirId, scanId, file, attributes);
-            Long fileId = fileRowCreator.create(fileBean);
+            FileBean fileBean = fileBeanFactory.create(dirId, scanId, file, attributes);
 
-            System.out.println("     " + fileId + ":" + dirId + " " + file);
+            if (fileBean.getFullFileName().endsWith("catalog_24.png")) {
+                fileBean = fileBean;
+            }
+
+            fileRowCreator.create(fileBean);
+
+            fileCount++;
+
+            System.out.println("     " + fileBean.getFileId() + ":" + dirId + " " + file);
+
         }
         return FileVisitResult.CONTINUE;
 

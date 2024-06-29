@@ -150,7 +150,7 @@ public class Progress {
     /**
      * Resets the processing time and units of the Progress
      *
-     * @return Reset Progress
+     * @return ResetCommand Progress
      */
 
     @Override

@@ -12,7 +12,7 @@ public class FileBean implements Comparable<FileBean> {
     Long dirId;
     Long scanId;
     Path fullFileName;
-    long size;
+    Long size;
     LocalDateTime lastWriteAccess;
     byte[] checksum;
     LocalDateTime calcStarted;

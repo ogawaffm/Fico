@@ -11,20 +11,13 @@ public class FileRowCreator extends FileRowBatchAccess {
             + "CHECKSUM, CALC_STARTED, CALC_FINISHED)\n"
             + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    private Sequence fileIdSequence;
+    public FileRowCreator(@NonNull Connection connection) {
 
-    public FileRowCreator(@NonNull Connection connection, int scanId) {
-
-        super(connection, scanId, INSERT_INTO_FILE, 1000, true);
-
-        fileIdSequence = FileIdSequenceFactory.getFileIdSequence(connection, scanId);
+        super(connection, INSERT_INTO_FILE, 1000, true);
 
     }
 
-    public long create(@NonNull FileBean fileBean) {
-
-        long newFileId = fileIdSequence.next();
-        fileBean.setFileId(newFileId);
+    public void create(@NonNull FileBean fileBean) {
 
         try {
 
@@ -33,16 +26,14 @@ public class FileRowCreator extends FileRowBatchAccess {
                 fileBean.getFileId(),
                 fileBean.getScanId(),
                 fileBean.getDirId(),
-                getDirectoryName(fileBean.getFullFileName()),
-                getFilename(fileBean.getFullFileName()),
+                Util.getDirectoryName(fileBean.getFullFileName()),
+                Util.getFilename(fileBean.getFullFileName()),
                 fileBean.getSize(),
-                toTimestamp(fileBean.getLastWriteAccess()),
+                Util.toTimestamp(fileBean.getLastWriteAccess()),
                 fileBean.getChecksum(),
-                toTimestamp(fileBean.getCalcStarted()),
-                toTimestamp(fileBean.getCalcFinished())
+                Util.toTimestamp(fileBean.getCalcStarted()),
+                Util.toTimestamp(fileBean.getCalcFinished())
             });
-
-            return newFileId;
 
         } catch (Exception e) {
             System.err.println(fileBean);

@@ -1,15 +1,11 @@
 package com.ogawa.fico.application;
 
 import com.ogawa.fico.checksum.ChecksumBuilder;
-import com.ogawa.fico.db.FileRowMapper;
 import com.ogawa.fico.db.FileRowUpdater;
 import com.ogawa.fico.multithreading.ExtendedExecutorCompletionService;
 import com.ogawa.fico.multithreading.ExtendedFutureTask;
 import java.sql.Connection;
 import java.time.LocalDateTime;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -26,15 +22,25 @@ public class ChecksumWriteService implements Runnable {
     private final AtomicBoolean isTerminated = new AtomicBoolean(false);
 
     ChecksumWriteService(@NonNull ExtendedExecutorCompletionService<FileBean> executorCompletionService,
-        @NonNull ThreadPoolExecutor producer, @NonNull Connection connection, int scanId) {
+        @NonNull ThreadPoolExecutor producer, @NonNull Connection connection) {
 
         this.producer = producer;
-        this.fileRowUpdater = new FileRowUpdater(connection, scanId);
+        this.fileRowUpdater = new FileRowUpdater(connection);
         this.executorCompletionService = executorCompletionService;
     }
 
     public boolean isTerminated() {
         return isTerminated.get();
+    }
+
+    void printFileBean(FileBean fileBean) {
+        System.out.print(fileBean.getSize());
+        System.out.print(" bytes (fileId: ");
+        System.out.print(fileBean.getFileId());
+        System.out.print(") ");
+        System.out.print(fileBean.getFullFileName().toString());
+        System.out.print(" ");
+        System.out.println(ChecksumBuilder.getBytesToHex(fileBean.getChecksum()));
     }
 
     public void run() {
@@ -62,17 +68,16 @@ public class ChecksumWriteService implements Runnable {
 
                 callableFileChecksummer = (CallableFileChecksummer) ((ExtendedFutureTask<FileBean>) futureTask).getTask();
 
-                System.out.println(
-                    callableFileChecksummer.getFileBean().getSize() + " bytes (fileId: " +
-                        callableFileChecksummer.getFileBean().getFileId() + ") " +
-                        callableFileChecksummer.getFileBean().getFullFileName().toString() + " " +
-                        ChecksumBuilder.getBytesToHex(callableFileChecksummer.getFileBean().getChecksum())
-                );
+                FileBean fileBean = callableFileChecksummer.getFileBean();
 
-                fileRowUpdater.update(callableFileChecksummer.getFileBean());
+                printFileBean(fileBean);
+
+                fileRowUpdater.update(fileBean);
             }
 
         } while (!productionEnded || futureTask != null);
+
+        fileRowUpdater.close();
 
         isTerminated.set(true);
 

@@ -1,25 +1,43 @@
 package com.ogawa.fico.db;
 
+import static com.ogawa.fico.db.Util.getFullPath;
+import static com.ogawa.fico.db.Util.toLocalDateTime;
+import static com.ogawa.fico.jdbc.JdbcTransferor.resultSetToObjectArray;
+
 import com.ogawa.fico.application.FileBean;
 import com.ogawa.fico.application.FileBeanFactory;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import lombok.NonNull;
 
-public class FileRowReader extends FileRowBatchAccess {
+public class FileRowReader implements ResultSetRowReader {
+
+    private final ResultSet resultSet;
 
     private final static String SELECT_FROM_FILE =
         "SELECT FILE_ID, SCAN_ID, DIR_ID, PATH, NAME, SIZE, LAST_WRITE_ACCESS, "
             + "CHECKSUM, CALC_STARTED, CALC_FINISHED\n"
             + "FROM FILE\n";
 
-    public FileRowReader(@NonNull Connection connection, int scanId) {
+    public FileRowReader(@NonNull Connection connection, String sql) {
 
-        super(connection, scanId, SELECT_FROM_FILE, 1000, true);
-
+        try {
+            resultSet = connection.prepareStatement(sql).executeQuery();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    static public FileBean read(@NonNull Object[] row) {
+    public FileBean read(@NonNull Object[] row) {
+        try {
+            return createFromRow(getRow());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    static public FileBean createFromRow(@NonNull Object[] row) {
         FileBean fileBean = FileBeanFactory.create(
             row[0] == null ? null : ((Number) row[0]).longValue(),
             row[1] == null ? null : ((Number) row[1]).longValue(),
@@ -35,4 +53,8 @@ public class FileRowReader extends FileRowBatchAccess {
 
     }
 
+    @Override
+    public ResultSet getResultSet() {
+        return resultSet;
+    }
 }

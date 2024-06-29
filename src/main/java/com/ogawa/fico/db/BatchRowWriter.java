@@ -1,9 +1,8 @@
 package com.ogawa.fico.db;
 
-import com.ogawa.fico.jdbc.JdbcTransferor;
 import java.sql.*;
 
-public class BatchRowWriter implements AutoCloseable {
+public class BatchRowWriter extends RowWriter implements AutoCloseable {
 
     private PreparedStatement batchStatement;
 
@@ -32,13 +31,19 @@ public class BatchRowWriter implements AutoCloseable {
         return rowNum > 0 && (rowNum % batchSize == 0);
     }
 
+    @Override
+    PreparedStatement getPreparedStatement() {
+        return batchStatement;
+    }
+
     public void setRow(Object[] row) {
 
         rowNum++;
 
         try {
 
-            JdbcTransferor.objectArrayToBindVariables(row, batchStatement);
+            super.setRow(row);
+
             batchStatement.addBatch();
 
         } catch (SQLException addBatchException) {
