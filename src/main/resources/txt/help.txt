@@ -1,0 +1,55 @@
+FiCo [<HELP_COMMAND>|<REMOVE_COMMAND>|<REMOVE_ALL_COMMAND>|LIST_COMMAND|<ADD_COMMAND>|<REPLACE_COMMAND>|<ANALYZE_COMMAND]
+
+<REMOVE_ALL_COMMAND> - Removes all scans from the database
+
+    remove all <DatabaseName>
+
+    <DatabaseName> - name of the h2 repository database to use
+
+<REMOVE_COMMAND> - Removes a scan from the database
+
+    reset <ScanId> {<ScanId>} <DatabaseName>
+
+    <ScanId> - id of the scan to remove
+    <DatabaseName> - name of the h2 repository database to use
+
+<ADD_COMMAND> - Adds files to the database
+
+    add <FileOrDirOrUNC> {<FileOrDirOrUNC>} <DatabaseName>
+
+    <FileOrDirOrUNC> - file to add or directory or UNC to add files recursively from to the database
+    <DatabaseName> - name of the h2 repository database to use
+
+<ANALYZE_COMMAND> - Analyze the database for duplicates
+
+    analyze <DatabaseName>
+
+    <DatabaseName> - name of the h2 repository database to use
+
+<LIST_COMMAND> - List all scans or files in the database
+
+    list <TableName> <DatabaseName>
+
+    <TableName>    "scan" or "file" (name of the table to list)
+    <DatabaseName> name of the h2 repository database to use
+
+<EXPORT_COMMAND> - Export all rows of a table in the database to a tab-delimited file based on the locale of the system
+
+    export <TableName> <Filename> <DatabaseName>
+
+    <TableName>    "scan" or "file" (name of the table to export)
+    <Filename>     name of the file to export to. Extension .tsv will allow the file to be opened in Excel.
+                   Encoding is windows-1252 encoding on windows and UTF-8 on linux with
+    <DatabaseName> name of the h2 repository database to use
+
+
+<HELP_COMMAND>
+
+      help
+
+| or
+[] optional
+{} 0 or more
+
+Please note that values that contain spaces or are empty must be passed in double quotation marks.
+double quotation marks.

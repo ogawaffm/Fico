@@ -1,0 +1,2 @@
+UPDATE FILE
+SET CHECKSUM = null
