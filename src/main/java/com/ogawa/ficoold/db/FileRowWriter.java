@@ -6,7 +6,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Date;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class FileRowWriter {
 
     final private Connection connection;
@@ -49,9 +51,9 @@ public class FileRowWriter {
             return Util.execAndReturnGeneratedKey(insertIntoFile);
 
         } catch (Exception e) {
-            System.out.println(
-                "dirId: " + dirId + " path: " + path + " name: " + name + " size: " + size + " lastWriteAccess: "
-                    + lastWriteAccess);
+            log.error("Insert failed for "
+                + "dirId=" + dirId + " path=" + path + " name=" + name + " size=" + size + " lastWriteAccess="
+                + lastWriteAccess + ":" + e.getMessage());
             throw new RuntimeException(e);
         }
 
