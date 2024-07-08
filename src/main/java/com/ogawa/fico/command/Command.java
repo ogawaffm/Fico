@@ -6,6 +6,7 @@ import com.ogawa.fico.exception.CommandLineError;
 import com.ogawa.fico.exception.ExecutionException;
 import com.ogawa.fico.performance.logging.DurationFormatter;
 import com.ogawa.fico.performance.measuring.StopWatch;
+import java.time.format.DateTimeFormatter;
 import lombok.NonNull;
 
 public abstract class Command implements Runnable, ArgumentCardinality {
@@ -56,7 +57,7 @@ public abstract class Command implements Runnable, ArgumentCardinality {
         }
 
         if (getArgumentCount() < getMinArgumentCount()) {
-            throw new CommandLineError(getName() + " commandat least " + getMinArgumentCount() + " arguments"
+            throw new CommandLineError(getName() + " command at least " + getMinArgumentCount() + " arguments"
                 + " but got " + getArgumentCount() + " arguments");
         }
 
@@ -115,14 +116,17 @@ public abstract class Command implements Runnable, ArgumentCardinality {
         stopWatch = StopWatch.create();
         stopWatch.start();
         stopWatch.setName(getName());
-        System.out.println("Started " + getName() + " at " + stopWatch.getStartTimeDate());
+        System.out.println("Started " + getName() + " at "
+            + stopWatch.getStartTimeLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
         execute();
 
         stopWatch.stop();
         DurationFormatter durationFormatter = new DurationFormatter();
 
-        System.out.println("Finished " + getName() + " at " + stopWatch.getStopTimeDate() + " in "
+        System.out.println("Finished " + getName() + " at " +
+            stopWatch.getStopTimeLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            + " in "
             + durationFormatter.format(stopWatch.getAccumulatedRecordedTime()));
     }
 
