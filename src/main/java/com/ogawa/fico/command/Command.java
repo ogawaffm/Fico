@@ -7,6 +7,7 @@ import com.ogawa.fico.exception.ExecutionException;
 import com.ogawa.fico.performance.logging.DurationFormatter;
 import com.ogawa.fico.performance.measuring.StopWatch;
 import java.time.format.DateTimeFormatter;
+import lombok.Getter;
 import lombok.NonNull;
 
 public abstract class Command implements Runnable, ArgumentCardinality {
@@ -16,6 +17,7 @@ public abstract class Command implements Runnable, ArgumentCardinality {
     /**
      * The arguments of the command without the command name and the optional preceding database name.
      */
+    @Getter
     private final String[] arguments;
 
     /**
@@ -65,16 +67,12 @@ public abstract class Command implements Runnable, ArgumentCardinality {
 
     public abstract String getName();
 
-    public String[] getArguments() {
-        return arguments;
-    }
-
     /**
      * Returns one argument from the arguments of the command. The command name and the optional database name are no
      * arguments of the command and therefore cannot be retrieved. The first argument is at index 0.
      *
      * @param index The index of the argument to get, starting at 0.
-     * @return
+     * @return The argument at the specified index.
      */
     public String getArgument(int index) {
         return arguments[index];
