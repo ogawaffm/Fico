@@ -1,18 +1,11 @@
 package com.ogawa.fico.application;
 
-import com.ogawa.fico.command.CommandLineParser;
 import com.ogawa.fico.db.Util;
-import com.ogawa.fico.exception.CommandLineError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.List;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
 public class Config {
 

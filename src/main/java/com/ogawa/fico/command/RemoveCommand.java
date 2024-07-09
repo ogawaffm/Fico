@@ -6,7 +6,9 @@ import com.ogawa.fico.exception.CommandLineError;
 import java.sql.PreparedStatement;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class RemoveCommand extends DatabaseCommand implements CommandWithAtLeastOneArg {
 
     static final public String KEY_WORD = "remove";
@@ -56,7 +58,7 @@ public class RemoveCommand extends DatabaseCommand implements CommandWithAtLeast
             );
 
             long deletedScans = Util.execAndReturnRowsAffected(preparedStatement);
-            System.out.println("Deleted scans: " + deletedScans);
+            log.info("Deleted " + deletedScans + " scans");
 
 
         } catch (Exception exception) {

@@ -4,14 +4,16 @@ import com.ogawa.fico.checksum.ChecksumBuilder;
 import com.ogawa.fico.db.FileRowUpdater;
 import com.ogawa.fico.multithreading.ExtendedExecutorCompletionService;
 import com.ogawa.fico.multithreading.ExtendedFutureTask;
+import com.ogawa.fico.performance.logging.Formatter;
 import java.sql.Connection;
-import java.time.LocalDateTime;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ChecksumWriteService implements Runnable {
 
     private final FileRowUpdater fileRowUpdater;
@@ -34,21 +36,23 @@ public class ChecksumWriteService implements Runnable {
     }
 
     void printFileBean(FileBean fileBean) {
-        System.out.print(fileBean.getSize());
-        System.out.print(" bytes (fileId: ");
-        System.out.print(fileBean.getFileId());
-        System.out.print(") ");
-        System.out.print(fileBean.getFullFileName().toString());
-        System.out.print(" ");
-        System.out.println(ChecksumBuilder.getBytesToHex(fileBean.getChecksum()));
+        if (log.isDebugEnabled()) {
+            log.debug(
+                Formatter.format(fileBean.getSize())
+                    + " bytes (fileId: " + Formatter.format(fileBean.getFileId()) + ") "
+                    + fileBean.getFullFileName().toString()
+                    + " " + ChecksumBuilder.getBytesToHex(fileBean.getChecksum())
+            );
+        } else {
+            log.info(
+                fileBean.getFullFileName().toString() + " " + ChecksumBuilder.getBytesToHex(fileBean.getChecksum()));
+        }
     }
 
     public void run() {
 
-        long fileCount = 0;
-
-        System.out.println(this.getClass().getSimpleName() + " started at " + LocalDateTime.now());
-        Future<FileBean> futureTask = null;
+        log.info(this.getClass().getSimpleName() + " started");
+        Future<FileBean> futureTask;
         CallableFileChecksummer callableFileChecksummer;
 
         boolean productionEnded;
@@ -81,7 +85,7 @@ public class ChecksumWriteService implements Runnable {
 
         isTerminated.set(true);
 
-        System.out.println(this.getClass().getSimpleName() + " stopped at " + LocalDateTime.now());
+        log.info(this.getClass().getSimpleName() + " stopped");
     }
 
 }

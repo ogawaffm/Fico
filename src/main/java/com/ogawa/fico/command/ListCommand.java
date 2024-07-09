@@ -2,11 +2,14 @@ package com.ogawa.fico.command;
 
 import com.ogawa.fico.command.argument.CommandWithExactOneArg;
 import com.ogawa.fico.db.ResultSetTabulator;
+import com.ogawa.fico.performance.logging.Formatter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ListCommand extends TableReferencingCommand implements CommandWithExactOneArg {
 
     final static public String KEY_WORD = "list";
@@ -37,7 +40,9 @@ public class ListCommand extends TableReferencingCommand implements CommandWithE
                 resultSet, System.out, "\n", "|", "␀"
             );
 
-            resultSetTabulator.write();
+            log.info("Listed table " + getTableName() + " with "
+                + Formatter.format(resultSetTabulator.write()) + " rows"
+            );
 
         } catch (SQLException e) {
             throw new RuntimeException(e);

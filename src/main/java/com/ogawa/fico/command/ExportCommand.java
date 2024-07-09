@@ -4,6 +4,7 @@ import static com.ogawa.fico.misc.System.createPrintStream;
 
 import com.ogawa.fico.command.argument.CommandWithExactTwoArgs;
 import com.ogawa.fico.db.ResultSetExporter;
+import com.ogawa.fico.performance.logging.Formatter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.InvalidPathException;
@@ -12,7 +13,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ExportCommand extends TableReferencingCommand implements CommandWithExactTwoArgs {
 
     final static public String KEY_WORD = "export";
@@ -56,7 +59,10 @@ public class ExportCommand extends TableReferencingCommand implements CommandWit
             ResultSetExporter resultSetExporter = new ResultSetExporter(
                 resultSet, filePrintStream, "\n", "\t", ""
             );
-            resultSetExporter.write();
+
+            log.info("Exported table " + getTableName() + " with "
+                + Formatter.format(resultSetExporter.write()) + " rows"
+            );
 
         } catch (SQLException e) {
             throw new RuntimeException(e);

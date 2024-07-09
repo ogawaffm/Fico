@@ -1,11 +1,13 @@
 package com.ogawa.fico;
 
-import com.ogawa.ficoold.checksum.ChecksumStats;
+import com.ogawa.fico.checksum.ChecksumStats;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 @EqualsAndHashCode(doNotUseGetters = true)
+@Getter
 public class CombinedFileInfo implements Comparable<CombinedFileInfo> {
 
     private final Path path;
@@ -16,18 +18,6 @@ public class CombinedFileInfo implements Comparable<CombinedFileInfo> {
         this.path = path;
         this.attributes = attributes;
         this.checksumStats = checksumStats;
-    }
-
-    public Path getPath() {
-        return path;
-    }
-
-    public BasicFileAttributes getAttributes() {
-        return attributes;
-    }
-
-    public ChecksumStats getCheckSumStats() {
-        return checksumStats;
     }
 
     @Override

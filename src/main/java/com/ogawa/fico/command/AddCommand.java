@@ -11,8 +11,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
+import lombok.extern.slf4j.Slf4j;
 
 // TODO: iterate over all paths given
+@Slf4j
 public class AddCommand extends DatabaseCommand implements CommandWithAtLeastOneArg {
 
     static final public String KEY_WORD = "add";
@@ -65,9 +67,10 @@ public class AddCommand extends DatabaseCommand implements CommandWithAtLeastOne
         fileRowCreator.close();
         scanRowWriter.updateFinished(scanId, new Date());
 
-        System.out.print("Files " + fileVisitor.getFileCount());
-        System.out.print(" from " + fileVisitor.getDirCount());
-        System.out.println(" directories added to " + getDatabaseName());
+        log.info("Files " + fileVisitor.getFileCount()
+            + " from " + fileVisitor.getDirCount()
+            + " directories added to " + getDatabaseName()
+        );
 
     }
 

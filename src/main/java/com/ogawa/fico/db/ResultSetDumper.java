@@ -2,7 +2,6 @@ package com.ogawa.fico.db;
 
 import java.io.PrintStream;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 public abstract class ResultSetDumper {
@@ -99,21 +98,24 @@ public abstract class ResultSetDumper {
         }
     }
 
-    private void writeRows() {
+    private long writeRows() {
+        long rows = 0;
         try {
             while (resultSet.next()) {
                 writeRow();
                 writeRowDelimiter();
+                rows++;
             }
 
         } catch (SQLException sqlException) {
             throw new RuntimeException(sqlException);
         }
+        return rows;
     }
 
-    public void write() {
+    public long write() {
         writeHeader();
-        writeRows();
+        return writeRows();
     }
 
 }

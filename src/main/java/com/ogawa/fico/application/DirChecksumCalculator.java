@@ -8,7 +8,9 @@ import com.ogawa.fico.performance.measuring.StopWatch;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class DirChecksumCalculator {
 
     static private final String UPDATE_DIRECTORY_CHECKSUM = "UpdateDirectoryChecksum";
@@ -33,7 +35,7 @@ public class DirChecksumCalculator {
         StopWatch stopWatch = StopWatch.create();
         stopWatch.pause();
 
-        System.out.println("Calculating directory checksums...");
+        log.info("Calculating directory checksums...");
 
         do {
             updateCount++;
@@ -44,13 +46,13 @@ public class DirChecksumCalculator {
 
             totalUpdatedDirCount = totalUpdatedDirCount + updatedDirCount;
 
-            System.out.println("#" + updateCount + ": " + updatedDirCount + " in " + stopWatch.getLastRecordedTime());
+            log.info("#" + updateCount + ": " + updatedDirCount + " in " + stopWatch.getLastRecordedTime());
 
         } while (updatedDirCount > 0);
 
         stopWatch.stop();
 
-        System.out.println("total dirs with checksum: " + totalUpdatedDirCount + " in "
+        log.info("total dirs with checksum: " + totalUpdatedDirCount + " in "
             + new DurationFormatter().format(stopWatch.getAccumulatedRecordedTime())
             + " in " + updateCount + " updates"
         );
@@ -58,6 +60,5 @@ public class DirChecksumCalculator {
         return totalUpdatedDirCount;
 
     }
-
 
 }

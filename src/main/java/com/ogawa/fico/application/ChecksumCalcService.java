@@ -13,19 +13,15 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
+@Getter
 public class ChecksumCalcService {
 
     long fileCount = 0;
     long dirCount = 0;
-
-    public long getFileCount() {
-        return fileCount;
-    }
-
-    public long getDirCount() {
-        return dirCount;
-    }
 
     private Comparator<FileBean> getFileBeanPriorityComparator() {
 
@@ -61,8 +57,8 @@ public class ChecksumCalcService {
     }
 
     private void showStatistics(ExtendedThreadPoolExecutor executor, ThreadPoolExecutorStatistics statistics) {
-        System.out.println("Queue size:" + executor.getQueue().size());
-        System.out.println("Statistics:" + statistics);
+        log.info("Queue size:" + executor.getQueue().size());
+        log.info("Statistics:" + statistics);
     }
 
     private void waitUntilAllChecksumsAreCalculated(ExtendedThreadPoolExecutor executor,
@@ -131,7 +127,7 @@ public class ChecksumCalcService {
                 try {
                     futureTask = executorCompletionService.submit(callableFileChecksummer);
                 } catch (RejectedExecutionException rejectedExecutionException) {
-                    System.out.println("RejectedExecutionException: " + ++rejectionCount);
+                    log.info("RejectedExecutionException: " + ++rejectionCount);
                     ThreadUtils.waitSeconds(1);
                 }
 
@@ -163,7 +159,6 @@ public class ChecksumCalcService {
         fileCount = calcFileChecksums(connection);
 
         dirCount = DirChecksumCalculator.calc(connection);
-
 
     }
 

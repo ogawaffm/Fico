@@ -3,13 +3,14 @@ package com.ogawa.fico.application;
 import static com.ogawa.fico.db.Util.execAndReturnRowsAffected;
 import static com.ogawa.fico.db.Util.getSql;
 
-import com.ogawa.fico.db.Util;
-import com.ogawa.fico.performance.logging.DurationFormatter;
+import com.ogawa.fico.performance.logging.Formatter;
 import com.ogawa.fico.performance.measuring.StopWatch;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class FileCandidateMarker {
 
     static private final String RESET_MARKED_DUPLICATE_CANDIDATES = "ResetMarkedDuplicateCandidates";
@@ -40,19 +41,19 @@ public class FileCandidateMarker {
         }
     }
 
-    public static long mark(Connection connection) {
+    public static void mark(Connection connection) {
         StopWatch stopWatch = StopWatch.create();
         stopWatch.start();
 
-        System.out.println("Marking duplicate candidates...");
+        log.info("Marking duplicate candidates...");
         long markedRowCount = createDuplicateCandidates(connection);
 
         stopWatch.stop();
 
-        System.out.println("markedRowCount: " + markedRowCount + " in "
-            + new DurationFormatter().format(stopWatch.getAccumulatedRecordedTime()));
+        log.info("Marked " + markedRowCount + " files as candidate in "
+            + Formatter.format(stopWatch.getAccumulatedRecordedTime())
+        );
 
-        return markedRowCount;
     }
 
 

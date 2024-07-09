@@ -10,10 +10,12 @@ import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.sql.Connection;
 import java.util.Objects;
 import java.util.Stack;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class PersistingFileVisitor implements FileVisitor<Path> {
 
     private final Path path;
@@ -24,9 +26,11 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
     private Long dirId = null;
 
-    private Stack<Long> dirIdStack = new Stack<>();
+    final private Stack<Long> dirIdStack = new Stack<>();
 
+    @Getter
     private long fileCount = 0;
+    @Getter
     private long dirCount = 0;
 
     public PersistingFileVisitor(long scanId, Path path, Sequence fileIdSequence, FileRowCreator fileRowCreator) {
@@ -38,20 +42,21 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
     }
 
-    public long getFileCount() {
-        return fileCount;
-    }
-
-    public long getDirCount() {
-        return dirCount;
-    }
-
     public void walk() throws IOException {
         Files.walkFileTree(path, this);
     }
 
-    private BasicFileAttributes getAttributes(Path path) throws IOException {
+    private BasicFileAttributes readAttributes(Path path) throws IOException {
         return Files.readAttributes(path, BasicFileAttributes.class);
+    }
+
+    private void logDirChange(String verb, Path dir, Long dirId, Long parentDirId) {
+        log.info(verb + " " + dir);
+        if (parentDirId == null) {
+            log.debug("FileId of " + dir + " is " + dirId + " and it is a scan root directory");
+        } else {
+            log.debug("FileId of " + dir + " is " + dirId + " and parent dir id is " + parentDirId);
+        }
     }
 
     /**
@@ -68,7 +73,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
         dirIdStack.push(dirId);
 
-        System.out.println("pre  " + fileBean.getFileId() + ":" + (dirId == null ? -1 : dirId) + " " + dir);
+        logDirChange("Entering", dir, fileBean.getFileId(), dirId);
 
         dirId = fileBean.getFileId();
 
@@ -91,15 +96,13 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
             FileBean fileBean = fileBeanFactory.create(dirId, scanId, file, attributes);
 
-            if (fileBean.getFullFileName().endsWith("catalog_24.png")) {
-                fileBean = fileBean;
-            }
-
             fileRowCreator.create(fileBean);
 
             fileCount++;
 
-            System.out.println("     " + fileBean.getFileId() + ":" + dirId + " " + file);
+            log.info(file.toString());
+
+            log.debug("FileId of file is " + fileBean.getFileId() + " and id of its dir " + dirId);
 
         }
         return FileVisitResult.CONTINUE;
@@ -115,8 +118,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException ioException) {
         Objects.requireNonNull(file);
-        System.out.print('\t');
-        System.out.println(ioException.getMessage());
+        log.warn("Visit of " + file + " failed " + ioException.getMessage());
         return FileVisitResult.CONTINUE;
     }
 
@@ -132,8 +134,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
         dirId = dirIdStack.pop();
 
-        System.out.println(
-            "post " + dirId + ":" + (dirIdStack.isEmpty() ? Long.valueOf(-1) : dirIdStack.peek()) + " " + dir);
+        logDirChange("Leaving", dir, dirId, dirIdStack.isEmpty() ? null : dirIdStack.peek());
 
         return FileVisitResult.CONTINUE;
     }

@@ -4,12 +4,13 @@ import com.ogawa.fico.application.Config;
 import com.ogawa.fico.command.argument.ArgumentCardinality;
 import com.ogawa.fico.exception.CommandLineError;
 import com.ogawa.fico.exception.ExecutionException;
-import com.ogawa.fico.performance.logging.DurationFormatter;
+import com.ogawa.fico.performance.logging.Formatter;
 import com.ogawa.fico.performance.measuring.StopWatch;
-import java.time.format.DateTimeFormatter;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class Command implements Runnable, ArgumentCardinality {
 
     StopWatch stopWatch;
@@ -107,21 +108,17 @@ public abstract class Command implements Runnable, ArgumentCardinality {
 
     @Override
     public void run() {
+
         stopWatch = StopWatch.create();
         stopWatch.start();
         stopWatch.setName(getName());
-        System.out.println("Started " + getName() + " at "
-            + stopWatch.getStartTimeLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        log.info("Started " + getName());
 
         execute();
 
         stopWatch.stop();
-        DurationFormatter durationFormatter = new DurationFormatter();
 
-        System.out.println("Finished " + getName() + " at " +
-            stopWatch.getStopTimeLocalDateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            + " in "
-            + durationFormatter.format(stopWatch.getAccumulatedRecordedTime()));
+        log.info("Finished " + getName() + " in " + Formatter.format(stopWatch.getAccumulatedRecordedTime()));
     }
 
 }

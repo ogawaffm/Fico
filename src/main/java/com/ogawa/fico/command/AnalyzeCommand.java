@@ -2,8 +2,10 @@ package com.ogawa.fico.command;
 
 import com.ogawa.fico.application.ChecksumCalcService;
 import com.ogawa.fico.command.argument.CommandWithNoArgs;
+import lombok.extern.slf4j.Slf4j;
 
 // TODO: Make scanId variable
+@Slf4j
 public class AnalyzeCommand extends DatabaseCommand implements CommandWithNoArgs {
 
     static final public String KEY_WORD = "analyze";
@@ -23,7 +25,7 @@ public class AnalyzeCommand extends DatabaseCommand implements CommandWithNoArgs
 
         checkSummer.calc(getConnection());
 
-        System.out.print("Analyzed " + checkSummer.getFileCount() + " files");
-        System.out.println(" and " + checkSummer.getDirCount() + " directories");
+        log.info("Analyzed " + checkSummer.getFileCount() + " files"
+            + " and " + checkSummer.getDirCount() + " directories");
     }
 }
