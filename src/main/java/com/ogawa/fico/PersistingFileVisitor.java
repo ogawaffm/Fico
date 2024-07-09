@@ -46,10 +46,6 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
         Files.walkFileTree(path, this);
     }
 
-    private BasicFileAttributes readAttributes(Path path) throws IOException {
-        return Files.readAttributes(path, BasicFileAttributes.class);
-    }
-
     private void logDirChange(String verb, Path dir, Long dirId, Long parentDirId) {
         log.info(verb + " " + dir);
         if (parentDirId == null) {
@@ -118,7 +114,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException ioException) {
         Objects.requireNonNull(file);
-        log.warn("Visit of " + file + " failed " + ioException.getMessage());
+        log.warn("Visit of " + file + " failed: " + ioException.getMessage());
         return FileVisitResult.CONTINUE;
     }
 
@@ -130,7 +126,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
      * I/O logException that caused the iteration of the directory to terminate prematurely.
      */
     @Override
-    public FileVisitResult postVisitDirectory(Path dir, IOException ioException) throws IOException {
+    public FileVisitResult postVisitDirectory(Path dir, IOException ioException) {
 
         dirId = dirIdStack.pop();
 
