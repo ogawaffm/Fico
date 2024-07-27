@@ -1,18 +1,23 @@
-package com.ogawa.fico.db;
+package com.ogawa.fico.db.persistence.bindvarwriter;
 
+import com.ogawa.fico.jdbc.JdbcTransferor;
 import java.sql.*;
 
-public class BatchRowWriter extends RowWriter implements AutoCloseable {
+public class BatchedBindVarWriter implements BindVarWriter {
 
-    private PreparedStatement batchStatement;
-
-    final boolean commitAfterBatch;
-    final private int batchSize;
+    private PreparedStatement preparedStatement;
+    private final boolean commitAfterBatch;
+    private final int batchSize;
     private int batchNo = 0;
     private int rowNum = 0;
 
-    public BatchRowWriter(PreparedStatement preparedStatement, int batchSize, boolean commitAfterBatch) {
-        this.batchStatement = preparedStatement;
+    public BatchedBindVarWriter(Connection connection,
+        String sqlWithBindVariables, int batchSize, boolean commitAfterBatch) {
+        try {
+            preparedStatement = connection.prepareStatement(sqlWithBindVariables);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         this.batchSize = batchSize;
         this.commitAfterBatch = commitAfterBatch;
     }
@@ -20,7 +25,7 @@ public class BatchRowWriter extends RowWriter implements AutoCloseable {
     private boolean isOpen() {
         boolean isOpen;
         try {
-            isOpen = batchStatement != null || !batchStatement.isClosed();
+            isOpen = preparedStatement != null || !preparedStatement.isClosed();
         } catch (SQLException batchStatementClosedException) {
             isOpen = false;
         }
@@ -31,20 +36,15 @@ public class BatchRowWriter extends RowWriter implements AutoCloseable {
         return rowNum > 0 && (rowNum % batchSize == 0);
     }
 
-    @Override
-    PreparedStatement getPreparedStatement() {
-        return batchStatement;
-    }
-
-    public void setRow(Object[] row) {
+    public void write(Object[] row) {
 
         rowNum++;
 
         try {
 
-            super.setRow(row);
+            JdbcTransferor.setBindVars(preparedStatement, row);
 
-            batchStatement.addBatch();
+            preparedStatement.addBatch();
 
         } catch (SQLException addBatchException) {
             throw new RuntimeException(
@@ -96,7 +96,10 @@ public class BatchRowWriter extends RowWriter implements AutoCloseable {
         }
         sb.append(" Caused by: ");
         sb.append(cause.getMessage());
-        close();
+        try {
+            close();
+        } catch (SQLException ignored) {
+        }
         throw new RuntimeException(sb.toString());
     }
 
@@ -105,14 +108,14 @@ public class BatchRowWriter extends RowWriter implements AutoCloseable {
         batchNo++;
 
         try {
-            batchStatement.executeBatch();
+            preparedStatement.executeBatch();
         } catch (SQLException executeBatchException) {
             throwFlushException("executing", batchNo, rowNum, executeBatchException);
         }
 
         if (commitAfterBatch) {
             try {
-                batchStatement.getConnection().commit();
+                preparedStatement.getConnection().commit();
             } catch (SQLException commitException) {
                 throwFlushException("committing", batchNo, rowNum, commitException);
             }
@@ -120,16 +123,17 @@ public class BatchRowWriter extends RowWriter implements AutoCloseable {
 
     }
 
-    public void close() {
+    @Override
+    public void close() throws SQLException {
 
         if (isOpen()) {
             // Still unwritten rows?
             if (!isBatchFull()) {
                 flush();
             }
-
+            preparedStatement.close();
             // mark as closed
-            batchStatement = null;
+            preparedStatement = null;
 
         }
 

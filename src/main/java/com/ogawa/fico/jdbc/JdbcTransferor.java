@@ -40,7 +40,7 @@ public class JdbcTransferor {
 
     }
 
-    static public void objectArrayToBindVariables(Object[] row, PreparedStatement preparedStatement)
+    static private void objectArrayToBindVars(Object[] row, PreparedStatement preparedStatement, String bindVarItem)
         throws SQLException {
 
         int columnNo = 0;
@@ -51,8 +51,18 @@ public class JdbcTransferor {
             }
 
         } catch (SQLException setObjException) {
-            throw new SQLException("Error writing column #" + columnNo + " (1-based)", setObjException);
+            throw new SQLException("Error writing " + bindVarItem + " #" + columnNo + " (1-based)", setObjException);
         }
+    }
+
+    static public void setBindVars(PreparedStatement preparedStatement, Object[] bindVariables)
+        throws SQLException {
+        objectArrayToBindVars(bindVariables, preparedStatement, "bind variable");
+    }
+
+    static public void rowToBindVars(Object[] row, PreparedStatement preparedStatement)
+        throws SQLException {
+        objectArrayToBindVars(row, preparedStatement, "row");
     }
 
 }

@@ -10,5 +10,5 @@
 /ZeppelinRemoteNotebooks/
 # GitHub Copilot persisted chat sessions
 /copilot/chatSessions
-*.class
 *.dump
+/target/classes/**

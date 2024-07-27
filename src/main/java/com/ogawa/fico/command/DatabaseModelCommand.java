@@ -1,8 +1,8 @@
 package com.ogawa.fico.command;
 
-import com.ogawa.fico.application.Config;
+import com.ogawa.fico.application.Application;
 import com.ogawa.fico.db.Util;
-import com.ogawa.fico.exception.CommandLineError;
+import com.ogawa.fico.exception.ExecutionError;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -27,12 +27,12 @@ public abstract class DatabaseModelCommand extends DatabaseCommand {
         try {
             connection.close();
         } catch (SQLException sqlException) {
-            throw new CommandLineError("Cannot connect to '" + getDatabaseName() + "':" + sqlException);
+            throw new ExecutionError("Cannot connect to '" + getDatabaseName() + "'", sqlException);
         }
     }
 
     public String getDatabaseName() {
-        return Config.getDatabaseName();
+        return Application.getDatabaseName();
     }
 
     public Connection getConnection() {

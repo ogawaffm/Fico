@@ -1,6 +1,6 @@
-package com.ogawa.fico.application;
+package com.ogawa.fico.scan;
 
-import com.ogawa.fico.db.FileRowReader;
+import com.ogawa.fico.db.persistence.rowmapper.ScanRowMapper;
 import com.ogawa.fico.db.Util;
 import com.ogawa.fico.jdbc.RowIterator;
 import java.sql.Connection;
@@ -9,7 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
 
-public class FileBeanProvider implements Iterator<FileBean>, AutoCloseable {
+public class ScanBeanProvider implements Iterator<ScanBean>, AutoCloseable {
 
     private final PreparedStatement preparedStatement;
 
@@ -17,14 +17,17 @@ public class FileBeanProvider implements Iterator<FileBean>, AutoCloseable {
 
     static private final String SELECT_MARKED_DUPLICATE_CANDIDATES = "SelectMarkedDuplicateCandidates";
 
-    FileBeanProvider(Connection connection, boolean markedFiledOnly) {
+    static private final ScanRowMapper scanRowMapper = new ScanRowMapper();
+
+    public ScanBeanProvider(Connection connection, boolean markedFiledOnly) {
 
         String sql;
 
         if (markedFiledOnly) {
             sql = Util.getSql(SELECT_MARKED_DUPLICATE_CANDIDATES);
         } else {
-            sql = "SELECT FILE_ID, SCAN_ID, DIR_ID, PATH, NAME, SIZE, LAST_WRITE_ACCESS, "
+            sql = "SELECT FILE_ID, SCAN_ID, DIR_ID, PATH, NAME, SIZE, "
+                + "IS_DIR, FILES_CONTAINED, DIRS_CONTAINED, MODIFICATION_TIME, CREATION_TIME, "
                 + "CHECKSUM, CALC_STARTED, CALC_FINISHED\n"
                 + "FROM FILE\n";
         }
@@ -45,9 +48,9 @@ public class FileBeanProvider implements Iterator<FileBean>, AutoCloseable {
     }
 
     @Override
-    public FileBean next() {
+    public ScanBean next() {
         Object[] row = rowIterator.next();
-        return FileRowReader.createFromRow(row);
+        return scanRowMapper.toObject(row);
     }
 
     public void close() {

@@ -2,18 +2,14 @@ package com.ogawa.fico.command;
 
 import lombok.NonNull;
 
-public abstract class DatabaselessCommand extends Command {
+public abstract class ServerCommand extends Command {
 
     /**
      * @param commandFollowingArgs The arguments after the command name, may including an optional preceding database
      *                             name
      */
-    DatabaselessCommand(@NonNull String[] commandFollowingArgs) {
+    ServerCommand(@NonNull String[] commandFollowingArgs) {
         super(commandFollowingArgs);
-    }
-
-    public boolean usesDatabase() {
-        return false;
     }
 
 }

@@ -1,55 +1,69 @@
-FiCo [<HELP_COMMAND>|<REMOVE_COMMAND>|<REMOVE_ALL_COMMAND>|LIST_COMMAND|<ADD_COMMAND>|<REPLACE_COMMAND>|<ANALYZE_COMMAND]
+use: fico [<HELP>|<CREATE>|<RESET>|<DROP>|<ADD>|<REMOVE>|<REPLACE>|<ANALYZE>|<LIST>|<EXPORT>]
 
-<REMOVE_ALL_COMMAND> - Removes all scans from the database
+<HELP> - show help
 
-    remove all <DatabaseName>
+    help
 
-    <DatabaseName> - name of the h2 repository database to use
+<CREATE> - Create the database model in the database
 
-<REMOVE_COMMAND> - Removes a scan from the database
+    create
 
-    reset <ScanId> {<ScanId>} <DatabaseName>
+<DROP> - Drop the database model in the database
 
-    <ScanId> - id of the scan to remove
-    <DatabaseName> - name of the h2 repository database to use
+    drop
 
-<ADD_COMMAND> - Adds files to the database
+<RESET> - Reset the database model in the database (drops and recreates the database model)
 
-    add <FileOrDirOrUNC> {<FileOrDirOrUNC>} <DatabaseName>
+    reset
 
-    <FileOrDirOrUNC> - file to add or directory or UNC to add files recursively from to the database
-    <DatabaseName> - name of the h2 repository database to use
+<ADD> - Add files to the database
 
-<ANALYZE_COMMAND> - Analyze the database for duplicates
+    add <FileOrDirOrUNC> {<FileOrDirOrUNC>}
 
-    analyze <DatabaseName>
+    <FileOrDirOrUNC> file to add or directory or UNC to add files recursively from to the database
 
-    <DatabaseName> - name of the h2 repository database to use
+<REMOVE> - Remove all, one or multiple scans from the database
 
-<LIST_COMMAND> - List all scans or files in the database
+    reset all
+    reset <ScanId> {<ScanId>}
 
-    list <TableName> <DatabaseName>
+    <ScanId>       id of the scan to remove
 
-    <TableName>    "scan" or "file" (name of the table to list)
-    <DatabaseName> name of the h2 repository database to use
+<ANALYZE> - Analyze all files of all scans of the database for duplicates
 
-<EXPORT_COMMAND> - Export all rows of a table in the database to a tab-delimited file based on the locale of the system
+    analyze
 
-    export <TableName> <Filename> <DatabaseName>
+<LIST> - List all scans, scan statistics or files in the database
 
-    <TableName>    "scan" or "file" (name of the table to export)
-    <Filename>     name of the file to export to. Extension .tsv will allow the file to be opened in Excel.
-                   Encoding is windows-1252 encoding on windows and UTF-8 on linux with
-    <DatabaseName> name of the h2 repository database to use
+    list <TableName>
 
+    <TableName>    "scan", "scan_stat" or "file" (name of the table to list)
 
-<HELP_COMMAND>
+<EXPORT> - Export all rows of a table in the database to a tab-delimited file based on the locale of the system
 
-      help
+    export <TableName> <Filename>
+
+    <TableName>    "scan", "scan_stat" or "file" (name of the table to list)
+    <Filename>     name of the file to export to. Encoding is windows-1252 encoding on windows and UTF-8 on linux.
+                   Extension .tsv will allow the file to be opened in Excel.
 
 | or
 [] optional
 {} 0 or more
 
 Please note that values that contain spaces or are empty must be passed in double quotation marks.
-double quotation marks.
+
+Each command (with the exception of the Help command) can be preceded by an optional @DatabaseName to specify the name of the database to be used.
+
+Examples:
+    fico create
+    fico add "C:\My Files"
+    fico analyze
+    fico list scan
+    fico export file "C:\My Files.tsv"
+
+    fico @MyDatabaseName create
+    fico @MyDatabaseName add "C:\My Files"
+    fico @MyDatabaseName analyze
+    fico @MyDatabaseName list scan
+    fico @MyDatabaseName export file "C:\My Files.tsv"

@@ -1,6 +1,9 @@
 package com.ogawa.fico.db;
 
 import com.ogawa.fico.application.Config;
+import com.ogawa.fico.jdbc.JdbcTransferor;
+import com.ogawa.fico.performance.logging.Formatter;
+import com.ogawa.fico.performance.measuring.StopWatch;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,7 +12,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -20,20 +22,31 @@ import lombok.extern.slf4j.Slf4j;
 public class Util {
 
     public static Connection getConnection(String databaseName) {
+        String url = "";
         Connection connection;
         try {
-            connection = DriverManager.getConnection("jdbc:h2:tcp://localhost/~/" + databaseName, "sa", "");
-        } catch (SQLException ignore) {
-            log.info("Could not connect to " + databaseName + " using tcp. Trying to connect to local file ...");
+/*
+            connection = DriverManager.getConnection(
+                "jdbc:h2:tcp:mem//localhost/~/" + databaseName + ";TRACE_LEVEL_FILE=2", "sa", "");
+                   jdbc:h2:tcp://localhost/mem:db1 */
+            url = "jdbc:h2:tcp://localhost/mem:" + databaseName + ";DB_CLOSE_DELAY=-1";
+            connection = DriverManager.getConnection(url, "sa", "");
+        } catch (SQLException sqlException) {
+            log.debug(sqlException.getMessage());
+            log.info("Could not connect to {} using url {}. Trying to connect to local file ...", databaseName,
+                url.toString());
             try {
-                connection = DriverManager.getConnection("jdbc:h2:~/" + databaseName, "sa", "");
+//                connection = DriverManager.getConnection("jdbc:h2:mem:~/" + databaseName + ";DB_CLOSE_DELAY=-1", "sa", "");
+                url = "jdbc:h2:~/" + databaseName + ";DB_CLOSE_DELAY=-1";
+                connection = DriverManager.getConnection(url, "sa", "");
             } catch (SQLException exception) {
-                String msg = "Could not connect to " + databaseName + " using local file";
+                String msg = "Could not connect to {} using url {}";
                 log.error(msg + ": " + exception.getMessage());
                 throw new RuntimeException(msg, exception);
             }
 
         }
+        log.info("Connected to {} using url {}", databaseName, url);
         return connection;
     }
 
@@ -126,6 +139,103 @@ public class Util {
 
     }
 
+    static public long execute(Connection connection, String sql, String pluralItemName) {
+
+        PreparedStatement preparedStatement;
+        long recordAffected;
+
+        StopWatch stopWatch = StopWatch.create();
+        stopWatch.start();
+
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+            recordAffected = execAndReturnRowsAffected(preparedStatement);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        stopWatch.stop();
+
+        log.debug("Updated {} {} in {}", recordAffected, pluralItemName,
+            Formatter.format(stopWatch.getAccumulatedRecordedTime()));
+
+        return recordAffected;
+
+    }
+
+    static public long executeIteratively(Connection connection, String sql, String pluralItemName) {
+
+        PreparedStatement preparedStatement;
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return executeIteratively(preparedStatement, pluralItemName);
+
+    }
+
+    static public long executeIteratively(Connection connection, String sql, String pluralItemName, Object... params) {
+        PreparedStatement preparedStatement;
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+            JdbcTransferor.setBindVars(preparedStatement, params);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return executeIteratively(preparedStatement, pluralItemName);
+
+    }
+
+    static public long executeIteratively(PreparedStatement preparedStatement, String pluralItemName) {
+
+        long updateStepNo = 0;
+        long totalUpdatedDirCount = 0;
+        long updatedDirCount;
+
+        StopWatch stopWatch = StopWatch.create();
+        stopWatch.pause();
+
+        do {
+            updateStepNo++;
+
+            stopWatch.resume();
+            updatedDirCount = execAndReturnRowsAffected(preparedStatement);
+            try {
+                preparedStatement.getConnection().commit();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+            stopWatch.pause();
+
+            totalUpdatedDirCount = totalUpdatedDirCount + updatedDirCount;
+
+            if (updatedDirCount > 0) {
+                log.debug("Step #{} updated {} {} in {}",
+                    updateStepNo, updatedDirCount, pluralItemName, Formatter.format(stopWatch.getLastRecordedTime())
+                );
+            } else {
+                log.debug("Step #{} (final check step) took {}",
+                    updateStepNo, Formatter.format(stopWatch.getLastRecordedTime())
+                );
+            }
+
+        } while (updatedDirCount > 0);
+
+        stopWatch.stop();
+
+        closeSilently(preparedStatement);
+
+        log.info("Updated {} {} in total in {} steps in {}",
+            totalUpdatedDirCount, pluralItemName, updateStepNo, Formatter.format(stopWatch.getAccumulatedRecordedTime())
+        );
+
+        return totalUpdatedDirCount;
+
+    }
+
     static public void closeSilently(ResultSet resultSet) {
         try {
             resultSet.close();
@@ -147,43 +257,4 @@ public class Util {
         }
     }
 
-    static String getDirectoryName(Path path) {
-        if (path == null || path.getParent() == null) {
-            return "";
-        } else {
-            return path.getParent().toString();
-        }
-    }
-
-    static String getFilename(Path path) {
-        if (path == null || path.getFileName() == null) {
-            return "";
-        } else {
-            return path.getFileName().toString();
-        }
-    }
-
-    static Path getFullPath(String path, String name) {
-        if (path == null || name == null) {
-            return null;
-        } else {
-            return Path.of(path, name);
-        }
-    }
-
-    static Timestamp toTimestamp(LocalDateTime localDateTime) {
-        if (localDateTime == null) {
-            return null;
-        } else {
-            return Timestamp.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
-        }
-    }
-
-    static LocalDateTime toLocalDateTime(Timestamp timestamp) {
-        if (timestamp == null) {
-            return null;
-        } else {
-            return timestamp.toLocalDateTime();
-        }
-    }
 }

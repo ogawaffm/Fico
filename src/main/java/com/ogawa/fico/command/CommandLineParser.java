@@ -1,7 +1,8 @@
 package com.ogawa.fico.command;
 
-import com.ogawa.fico.application.Config;
-import com.ogawa.fico.exception.CommandLineError;
+import com.ogawa.fico.application.Application;
+import com.ogawa.fico.exception.MissingCommandError;
+import com.ogawa.fico.exception.UnknownCommandError;
 import java.util.HashMap;
 import java.util.function.Function;
 
@@ -24,6 +25,8 @@ public class CommandLineParser {
         knownCommands.put(CreateCommand.KEY_WORD, CreateCommand::new);
         knownCommands.put(ResetCommand.KEY_WORD, ResetCommand::new);
 
+        knownCommands.put(StartCommand.KEY_WORD, StartCommand::new);
+        knownCommands.put(StopCommand.KEY_WORD, StopCommand::new);
     }
 
     static String[] getAsStringArray(String string) {
@@ -38,7 +41,7 @@ public class CommandLineParser {
         if (commandLineArgs.length > 0 && commandLineArgs[0].startsWith("@")) {
 
             // sets the database name, even if there is no database name following the @
-            Config.setDatabaseName(commandLineArgs[0].substring(1));
+            Application.setDatabaseNameFromArgument(commandLineArgs[0].substring(1));
 
             // remove the @DatabaseName argument from the arguments
             commandLineArgs = removeFirstArgument(commandLineArgs);
@@ -46,13 +49,13 @@ public class CommandLineParser {
         }
 
         if (commandLineArgs.length == 0) {
-            throw new CommandLineError("No command specified. Use 'help' for a list of commands.");
+            throw new MissingCommandError("No command specified. Use 'help' for a list of commands.");
         }
 
         String commandName = commandLineArgs[0];
 
         if (!knownCommands.containsKey(commandName)) {
-            throw new CommandLineError("Unknown command '" + commandName + "'. Use 'help' for a list of commands.");
+            throw new UnknownCommandError("Unknown command '" + commandName + "'. Use 'help' for a list of commands.");
         }
 
         // remove the command name from the arguments

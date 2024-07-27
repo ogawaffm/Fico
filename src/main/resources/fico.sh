@@ -30,4 +30,4 @@ else
 fi
 # TODO DYLD_LIBRARY_PATH ?!?!?!? for mac
 # set cp to /sap/jco first, than to /lib since later has a disallowed jco jar with a version in its name
-$JAVA -Djava.library.path="$SAP_LIB" -cp "$APP_DIR":"$APP_DIR/sap/jco/*":"$SAP_LIB":"$APP_DIR/lib/*" io.patrizia.patio.application.Main "$@"
+$JAVA -Djava.library.path="$SAP_LIB" -cp "$APP_DIR":"$APP_DIR/sap/jco/*":"$SAP_LIB":"$APP_DIR/lib/*" your.com.Main "$@"

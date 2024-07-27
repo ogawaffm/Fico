@@ -197,7 +197,6 @@ public class ExtendedThreadPoolExecutor extends ThreadPoolExecutor {
     @Override
     public void shutdown() {
         super.shutdown();
-        System.out.println("Shutdown called logBefore " + before + " and logAfter" + after);
     }
 
 }

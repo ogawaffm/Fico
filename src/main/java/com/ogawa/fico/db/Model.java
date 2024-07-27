@@ -1,5 +1,6 @@
 package com.ogawa.fico.db;
 
+import static com.ogawa.fico.db.Util.closeSilently;
 import static org.h2.api.ErrorCode.TABLE_OR_VIEW_ALREADY_EXISTS_1;
 
 import com.ogawa.fico.exception.ModelError;
@@ -51,11 +52,7 @@ public class Model {
     }
 
     public void close() {
-        try {
-            connection.close();
-        } catch (SQLException sqlException) {
-            throw new RuntimeException(sqlException);
-        }
+        closeSilently(connection);
     }
 
 }

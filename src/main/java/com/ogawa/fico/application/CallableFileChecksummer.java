@@ -1,6 +1,8 @@
 package com.ogawa.fico.application;
 
 import com.ogawa.fico.checksum.FileChecksumBuilder;
+import com.ogawa.fico.scan.FileBean;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.concurrent.Callable;
 import lombok.Getter;
@@ -18,8 +20,10 @@ public class CallableFileChecksummer implements Callable<FileBean>, Comparator<C
     }
 
     public FileBean call() {
+        fileBean.setCalcStarted(LocalDateTime.now());
         fileChecksumBuilder.update(fileBean.getFullFileName());
         fileBean.setChecksum(fileChecksumBuilder.getByteChecksum());
+        fileBean.setCalcFinished(LocalDateTime.now());
         return fileBean;
     }
 

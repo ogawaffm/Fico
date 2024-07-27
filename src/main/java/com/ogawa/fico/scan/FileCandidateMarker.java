@@ -1,4 +1,4 @@
-package com.ogawa.fico.application;
+package com.ogawa.fico.scan;
 
 import static com.ogawa.fico.db.Util.execAndReturnRowsAffected;
 import static com.ogawa.fico.db.Util.getSql;
@@ -50,8 +50,8 @@ public class FileCandidateMarker {
 
         stopWatch.stop();
 
-        log.info("Marked " + markedRowCount + " files as candidate in "
-            + Formatter.format(stopWatch.getAccumulatedRecordedTime())
+        log.info("Marked {} files as candidate in {}",
+            markedRowCount, Formatter.format(stopWatch.getAccumulatedRecordedTime())
         );
 
     }

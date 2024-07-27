@@ -10,7 +10,7 @@ public abstract class TableReferencingCommand extends DatabaseCommand {
 
     abstract String getTableName();
 
-    private final static List<String> allowedTableNames = List.of("file", "scan", "scan_stat");
+    private final static List<String> allowedTableNames = List.of("file", "scan", "scan_stat", "file_duplicate");
 
     private boolean isAllowedTableName(String tableName) {
         return allowedTableNames.contains(tableName);

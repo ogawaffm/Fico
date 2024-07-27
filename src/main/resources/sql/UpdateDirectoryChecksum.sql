@@ -7,7 +7,7 @@ SET CHECKSUM = (
     HAVING COUNT(*) = COUNT(f.CHECKSUM)
        and COUNT(*) > 0
     )
-WHERE d.size IS NULL
+WHERE d.IS_DIR = TRUE
   AND d.CHECKSUM IS NULL
   and d.file_id in (
     SELECT f.DIR_ID

@@ -2,11 +2,11 @@ package com.ogawa.fico.command.argument;
 
 public interface CommandWithExactTwoArgs extends ArgumentCardinality {
 
-    default int getMinArgumentCount() {
+    default int getMinGivenArgumentCount() {
         return 2;
     }
 
-    default int getMaxArgumentCount() {
+    default int getMaxGivenArgumentCount() {
         return 2;
     }
 

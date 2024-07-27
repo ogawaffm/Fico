@@ -44,6 +44,8 @@ public class ListCommand extends TableReferencingCommand implements CommandWithE
                 + Formatter.format(resultSetTabulator.write()) + " rows"
             );
 
+            log.debug("DEBUG!");
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

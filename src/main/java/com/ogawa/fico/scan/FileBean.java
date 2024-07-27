@@ -1,4 +1,4 @@
-package com.ogawa.fico.application;
+package com.ogawa.fico.scan;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -13,7 +13,11 @@ public class FileBean implements Comparable<FileBean> {
     Long scanId;
     Path fullFileName;
     Long size;
-    LocalDateTime lastWriteAccess;
+    Boolean isDirectory;
+    Integer filesContained;
+    Integer dirsContained;
+    LocalDateTime modificationTime;
+    LocalDateTime creationTime;
     byte[] checksum;
     LocalDateTime calcStarted;
     LocalDateTime calcFinished;
@@ -26,8 +30,7 @@ public class FileBean implements Comparable<FileBean> {
     private static Comparator<FileBean> fileBeanPriorityComparator = getFileBeanPriorityComparator();
 
     private static Comparator<FileBean> getFileBeanPriorityComparator() {
-        Comparator<FileBean> fileSizeComparator
-            = Comparator.comparing(FileBean::getSize);
+        Comparator<FileBean> fileSizeComparator = Comparator.comparing(FileBean::getSize);
 
         Comparator<FileBean> reversedFileSizeAndPathComparator =
             fileSizeComparator.reversed().thenComparing(FileBean::getFullFileName);

@@ -1,8 +1,8 @@
 package com.ogawa.fico;
 
-import com.ogawa.fico.application.FileBean;
-import com.ogawa.fico.application.FileBeanFactory;
-import com.ogawa.fico.db.FileRowCreator;
+import com.ogawa.fico.db.persistence.beanwriter.Creator;
+import com.ogawa.fico.scan.FileBean;
+import com.ogawa.fico.scan.FileBeanFactory;
 import com.ogawa.fico.db.Sequence;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -21,7 +21,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     private final Path path;
 
     private final FileBeanFactory fileBeanFactory;
-    private final FileRowCreator fileRowCreator;
+    private final Creator creator;
     private final long scanId;
 
     private Long dirId = null;
@@ -30,14 +30,18 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
     @Getter
     private long fileCount = 0;
+
     @Getter
     private long dirCount = 0;
 
-    public PersistingFileVisitor(long scanId, Path path, Sequence fileIdSequence, FileRowCreator fileRowCreator) {
+    @Getter
+    private long totalSize = 0;
+
+    public PersistingFileVisitor(long scanId, Path path, Sequence fileIdSequence, Creator fileRowCreator) {
 
         this.scanId = scanId;
         this.path = path;
-        this.fileRowCreator = fileRowCreator;
+        this.creator = fileRowCreator;
         this.fileBeanFactory = new FileBeanFactory(scanId, fileIdSequence);
 
     }
@@ -47,11 +51,11 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     }
 
     private void logDirChange(String verb, Path dir, Long dirId, Long parentDirId) {
-        log.info(verb + " " + dir);
+        log.trace("Scan #{} {} {}", scanId, verb, dir);
         if (parentDirId == null) {
-            log.debug("FileId of " + dir + " is " + dirId + " and it is a scan root directory");
+            log.trace("Scan #{}: FileId of {} is {} and it is a scan root directory", scanId, dir, dirId);
         } else {
-            log.debug("FileId of " + dir + " is " + dirId + " and parent dir id is " + parentDirId);
+            log.trace("Scan #{}: FileId of {} is {} and parent dir id is {}", scanId, dir, dirId, parentDirId);
         }
     }
 
@@ -65,7 +69,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) {
 
         FileBean fileBean = fileBeanFactory.create(dirId, scanId, dir, attributes);
-        fileRowCreator.create(fileBean);
+        creator.create(fileBean);
 
         dirIdStack.push(dirId);
 
@@ -92,13 +96,17 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
             FileBean fileBean = fileBeanFactory.create(dirId, scanId, file, attributes);
 
-            fileRowCreator.create(fileBean);
+            creator.create(fileBean);
 
             fileCount++;
 
-            log.info(file.toString());
+            totalSize += fileBean.getSize();
 
-            log.debug("FileId of file is " + fileBean.getFileId() + " and id of its dir " + dirId);
+            log.info("Scan #{} added {}", scanId, file);
+
+            log.trace("Scan #{}: FileId of file {} is {} and id of its dir {}",
+                scanId, path, fileBean.getFileId(), dirId
+            );
 
         }
         return FileVisitResult.CONTINUE;
@@ -114,7 +122,7 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException ioException) {
         Objects.requireNonNull(file);
-        log.warn("Visit of " + file + " failed: " + ioException.getMessage());
+        log.warn("Scan #{}: Visit of {} failed: {}", scanId, file, ioException.getMessage());
         return FileVisitResult.CONTINUE;
     }
 

@@ -1,9 +1,10 @@
 package com.ogawa.fico.command;
 
-import com.ogawa.fico.application.Config;
+import com.ogawa.fico.application.Application;
 import com.ogawa.fico.command.argument.ArgumentCardinality;
-import com.ogawa.fico.exception.CommandLineError;
-import com.ogawa.fico.exception.ExecutionException;
+import com.ogawa.fico.exception.DatabaseArgumentNotAllowedError;
+import com.ogawa.fico.exception.ExecutionError;
+import com.ogawa.fico.exception.InvalidCommandArgumentNumber;
 import com.ogawa.fico.performance.logging.Formatter;
 import com.ogawa.fico.performance.measuring.StopWatch;
 import lombok.Getter;
@@ -27,41 +28,50 @@ public abstract class Command implements Runnable, ArgumentCardinality {
      */
     Command(@NonNull String[] commandFollowingArgs) {
 
-        if (!usesDatabase() && Config.isDatabaseSetByArgument()) {
-            throw new CommandLineError("@" + Config.getDatabaseName() + " not allowed for " + getName() + " command.");
+        if (!(this instanceof DatabaseCommand) && Application.isDatabaseSetByArgument()) {
+            throw new DatabaseArgumentNotAllowedError(
+                "@" + Application.getDatabaseName() + " not allowed for " + getName() + " command."
+            );
         }
-
         arguments = commandFollowingArgs;
 
         checkArgumentCardinality();
 
     }
 
-    abstract boolean usesDatabase();
+    public void checkArgumentCardinality() {
 
-    String getDatabaseName() {
-        return Config.getDatabaseName();
-    }
-
-    private void checkArgumentCardinality() {
-
-        if (getMaxArgumentCount() == 0 && getArgumentCount() > 0) {
-            throw new CommandLineError(getName() + " command does not take any arguments");
+        if (!isAnyArgumentRequired() && getArgumentCount() == 0) {
+            return;
         }
 
-        if (getMinArgumentCount() == getMaxArgumentCount() && getArgumentCount() != getMinArgumentCount()) {
-            throw new CommandLineError(getName() + " command takes " + getMinArgumentCount() + " arguments"
-                + " but got " + getArgumentCount() + " arguments");
+        if (getMaxGivenArgumentCount() == 0 && getArgumentCount() > 0) {
+            throw new InvalidCommandArgumentNumber(getName() + " command does not accept any arguments");
         }
 
-        if (getArgumentCount() > getMaxArgumentCount()) {
-            throw new CommandLineError(getName() + " command takes at most " + getMaxArgumentCount() + " arguments"
-                + " but got " + getArgumentCount() + " arguments");
+        if (getMinGivenArgumentCount() == getMaxGivenArgumentCount()
+            && getArgumentCount() != getMinGivenArgumentCount()) {
+            throw new InvalidCommandArgumentNumber(
+                getName() + " command accepts "
+                    + (!isAnyArgumentRequired() ? "no or " : "")
+                    + getMinGivenArgumentCount() + " arguments "
+                    + "but got " + getArgumentCount() + " arguments");
         }
 
-        if (getArgumentCount() < getMinArgumentCount()) {
-            throw new CommandLineError(getName() + " command at least " + getMinArgumentCount() + " arguments"
-                + " but got " + getArgumentCount() + " arguments");
+        if (getArgumentCount() > getMaxGivenArgumentCount()) {
+            throw new InvalidCommandArgumentNumber(
+                getName() + " command accepts "
+                    + (!isAnyArgumentRequired() ? "no or " : "")
+                    + "at most " + getMaxGivenArgumentCount() + " arguments "
+                    + "but got " + getArgumentCount() + " arguments");
+        }
+
+        if (getArgumentCount() < getMinGivenArgumentCount()) {
+            throw new InvalidCommandArgumentNumber(
+                getName() + " command accepts "
+                    + (!isAnyArgumentRequired() ? "no or " : "")
+                    + "at least " + getMinGivenArgumentCount() + "arguments "
+                    + "but got " + getArgumentCount() + " arguments");
         }
 
     }
@@ -92,33 +102,37 @@ public abstract class Command implements Runnable, ArgumentCardinality {
         return getName();
     }
 
+    void beforeExecute() {
+        stopWatch = StopWatch.create();
+        stopWatch.start();
+        stopWatch.setName(getName());
+        log.info("Started {}", getName());
+    }
+
     abstract void execute();
+
+    void afterExecute() {
+        stopWatch.stop();
+        log.info("Finished {} in {}", getName(), Formatter.format(stopWatch.getAccumulatedRecordedTime()));
+    }
 
     String createMessage(String message) {
         return getName() + " failed." + (message != null && !message.isEmpty() ? " " + message : "");
     }
 
     void throwExecutionError(String message) {
-        throw new ExecutionException(createMessage(message));
+        throw new ExecutionError(createMessage(message));
     }
 
     void throwExecutionError(Throwable cause) {
-        throw new ExecutionException(createMessage(null), cause);
+        throw new ExecutionError(createMessage(null), cause);
     }
 
     @Override
     public void run() {
-
-        stopWatch = StopWatch.create();
-        stopWatch.start();
-        stopWatch.setName(getName());
-        log.info("Started " + getName());
-
+        beforeExecute();
         execute();
-
-        stopWatch.stop();
-
-        log.info("Finished " + getName() + " in " + Formatter.format(stopWatch.getAccumulatedRecordedTime()));
+        afterExecute();
     }
 
 }

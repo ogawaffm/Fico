@@ -1,5 +1,7 @@
 package com.ogawa.fico.application;
 
+import static org.h2.util.IOUtils.closeSilently;
+
 import com.ogawa.fico.db.Util;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,32 +9,68 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
+// No @Slf4j annotation allowed in this file because configuration of the logger is not done yet
 public class Config {
 
-    static private String databaseName;
+    private static int DEFAULT_SERVER_PORT = 9092;
 
-    static public String getDefaultDatabaseName() {
-        if (System.getenv("FICO_DB") != null) {
-            return System.getenv("FICO_DB");
-        } else {
-            return "fico";
-        }
+    private static String SERVER_SHUTDOWN_PASSWORD = "fico";
+
+    private static String ENV_DEBUG_PORT_VAR = "FICO_DEBUG_PORT";
+
+    private static String ENV_LOG_CONFIG_FILE_VAR = "FICO_LOG_CONFIG_FILE";
+    private static String ENV_LOG_LEVEL_VAR = "FICO_LOG_LEVEL";
+
+    private static String ENV_DB_NAME = "FICO_DB_NAME";
+
+    private static String databaseName;
+
+    static public int getDefaultServerPort() {
+        return DEFAULT_SERVER_PORT;
     }
 
-    static public void setDatabaseName(String databaseName) {
+    static public String getServerShutdownPassword() {
+        return SERVER_SHUTDOWN_PASSWORD;
+    }
+
+    static protected void setDatabaseName(String databaseName) {
         Config.databaseName = databaseName;
     }
 
-    static public String getDatabaseName() {
-        if (databaseName == null) {
-            return getDefaultDatabaseName();
-        } else {
-            return databaseName;
-        }
+    static protected String getDatabaseName() {
+        return databaseName;
     }
 
-    static public boolean isDatabaseSetByArgument() {
-        return databaseName != null;
+    static public String getEnvDBNameVar() {
+        return ENV_DB_NAME;
+    }
+
+    static public String getEnvDBName() {
+        return System.getenv(getEnvDBNameVar());
+    }
+
+    static public String getEnvLogConfigFileVar() {
+        return ENV_LOG_CONFIG_FILE_VAR;
+    }
+
+    static public String getEnvLogConfigFile() {
+        return System.getenv(getEnvLogConfigFileVar());
+    }
+
+    static public String getEnvLogLevelVar() {
+        return ENV_LOG_LEVEL_VAR;
+    }
+
+    static public String getEnvLogLevel() {
+        return System.getenv(getEnvLogLevelVar());
+    }
+
+    static public String getEnvDebugPort() {
+        return System.getenv(getEnvDebugPortVar());
+    }
+
+    static public String getEnvDebugPortVar() {
+        return ENV_DEBUG_PORT_VAR;
     }
 
     public static String getResource(String filename) {
@@ -57,11 +95,7 @@ public class Config {
         } catch (IOException ioException) {
             throw new RuntimeException("Could not read file " + filename, ioException);
         } finally {
-            try {
-                inputStream.close();
-            } catch (IOException ioException) {
-                throw new RuntimeException("Could not close file " + filename, ioException);
-            }
+            closeSilently(inputStream);
         }
 
         return stringBuilder.toString();

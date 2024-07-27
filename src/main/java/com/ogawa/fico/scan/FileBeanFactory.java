@@ -1,4 +1,4 @@
-package com.ogawa.fico.application;
+package com.ogawa.fico.scan;
 
 import com.ogawa.fico.db.Sequence;
 import java.nio.file.Path;
@@ -19,7 +19,9 @@ public class FileBeanFactory {
     }
 
     static public FileBean create(Long fileId, Long dirId, long scanId, Path filename, Long size,
-        LocalDateTime lastWriteAccess, byte[] checksum, LocalDateTime calcStarted, LocalDateTime calcFinished) {
+        boolean isDirectory, Integer filesContained, Integer dirsContained,
+        LocalDateTime modificationTime, LocalDateTime creationTime,
+        byte[] checksum, LocalDateTime calcStarted, LocalDateTime calcFinished) {
 
         FileBean fileBean = new FileBean();
         fileBean.fileId = fileId;
@@ -27,7 +29,11 @@ public class FileBeanFactory {
         fileBean.scanId = scanId;
         fileBean.fullFileName = filename;
         fileBean.size = size;
-        fileBean.lastWriteAccess = lastWriteAccess;
+        fileBean.isDirectory = isDirectory;
+        fileBean.filesContained = filesContained;
+        fileBean.dirsContained = dirsContained;
+        fileBean.modificationTime = modificationTime;
+        fileBean.creationTime = creationTime;
         fileBean.checksum = checksum;
         fileBean.calcStarted = calcStarted;
         fileBean.calcFinished = calcFinished;
@@ -45,7 +51,11 @@ public class FileBeanFactory {
             scanId,
             filename,
             attributes.isDirectory() ? null : attributes.size(),
+            attributes.isDirectory(),
+            null,
+            null,
             attributes.lastModifiedTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(),
+            attributes.creationTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(),
             null,
             null,
             null

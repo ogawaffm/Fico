@@ -22,17 +22,30 @@ public class ScanRowWriter {
 
     public ScanRowWriter(Connection connection) {
         this.connection = connection;
-        try {
+        String sql = Util.getSql("CreateScan");
 
-            String sql = Util.getSql("CreateScan");
+        try {
 
             insertIntoScan = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
+        } catch (SQLException sqlException) {
+            throw new RuntimeException("Could not create prepared statement for scan creation: " + sql, sqlException);
+        }
+
+        try {
             updateScanStarted = connection.prepareStatement(UPDATE_SCAN_STARTED);
+
+        } catch (SQLException sqlException) {
+            throw new RuntimeException("Could not create prepared statement for scan start time update: "
+                + UPDATE_SCAN_STARTED, sqlException);
+        }
+
+        try {
             updateScanFinished = connection.prepareStatement(UPDATE_SCAN_FINISHED);
 
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        } catch (SQLException sqlException) {
+            throw new RuntimeException("Could not create prepared statement for scan finish time update: "
+                + UPDATE_SCAN_STARTED, sqlException);
         }
     }
 
@@ -40,38 +53,43 @@ public class ScanRowWriter {
         try {
 
             insertIntoScan.setString(1, root.toString());
+
             insertIntoScan.setString(2, System.getHostName());
             insertIntoScan.setString(3, System.getUsername());
             insertIntoScan.setLong(4, System.getPid());
 
             return Util.execAndReturnGeneratedKey(insertIntoScan);
 
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        } catch (SQLException sqlException) {
+            throw new RuntimeException("Could not create row in scan for root path '" + root + "'", sqlException);
         }
 
     }
 
     public void updateStarted(long scanId, Date started) {
 
-        update(updateScanStarted, scanId, started);
+        try {
+            update(updateScanStarted, scanId, started);
+        } catch (SQLException sqlException) {
+            throw new RuntimeException("Could not update scan start time for scan #" + scanId, sqlException);
+        }
 
     }
 
     public void updateFinished(long scanId, Date finished) {
 
-        update(updateScanFinished, scanId, finished);
+        try {
+            update(updateScanFinished, scanId, finished);
+        } catch (SQLException sqlException) {
+            throw new RuntimeException("Could not update scan finished time for scan #" + scanId, sqlException);
+        }
 
     }
 
-    private void update(PreparedStatement preparedStatement, long scanId, Date date) {
-        try {
-            preparedStatement.setTimestamp(1, new Timestamp(date.getTime()));
-            preparedStatement.setLong(2, scanId);
-            preparedStatement.execute();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    private void update(PreparedStatement preparedStatement, long scanId, Date date) throws SQLException {
+        preparedStatement.setTimestamp(1, new Timestamp(date.getTime()));
+        preparedStatement.setLong(2, scanId);
+        preparedStatement.execute();
     }
 
 }

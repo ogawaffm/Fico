@@ -1,11 +1,14 @@
 package com.ogawa.fico.application;
 
 import com.ogawa.fico.checksum.ChecksumBuilder;
-import com.ogawa.fico.db.FileRowUpdater;
+import com.ogawa.fico.db.persistence.beanwriter.Updater;
+import com.ogawa.fico.db.persistence.factory.FilePersistenceFactory;
 import com.ogawa.fico.multithreading.ExtendedExecutorCompletionService;
 import com.ogawa.fico.multithreading.ExtendedFutureTask;
 import com.ogawa.fico.performance.logging.Formatter;
+import com.ogawa.fico.scan.FileBean;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ChecksumWriteService implements Runnable {
 
-    private final FileRowUpdater fileRowUpdater;
+    private final Updater fileBeanUpdater;
     private final ThreadPoolExecutor producer;
 
     private final ExtendedExecutorCompletionService<FileBean> executorCompletionService;
@@ -24,10 +27,10 @@ public class ChecksumWriteService implements Runnable {
     private final AtomicBoolean isTerminated = new AtomicBoolean(false);
 
     ChecksumWriteService(@NonNull ExtendedExecutorCompletionService<FileBean> executorCompletionService,
-        @NonNull ThreadPoolExecutor producer, @NonNull Connection connection) {
+        @NonNull ThreadPoolExecutor producer, @NonNull Connection connection) throws SQLException {
 
         this.producer = producer;
-        this.fileRowUpdater = new FileRowUpdater(connection);
+        fileBeanUpdater = new FilePersistenceFactory(connection).createUpdater();
         this.executorCompletionService = executorCompletionService;
     }
 
@@ -35,23 +38,26 @@ public class ChecksumWriteService implements Runnable {
         return isTerminated.get();
     }
 
-    void printFileBean(FileBean fileBean) {
+    private String getServiceName() {
+        return this.getClass().getSimpleName();
+    }
+
+    void logFileBean(FileBean fileBean) {
         if (log.isDebugEnabled()) {
-            log.debug(
-                Formatter.format(fileBean.getSize())
-                    + " bytes (fileId: " + Formatter.format(fileBean.getFileId()) + ") "
-                    + fileBean.getFullFileName().toString()
-                    + " " + ChecksumBuilder.getBytesToHex(fileBean.getChecksum())
+            log.debug("{} bytes (fileId: {}) {} {})",
+                Formatter.format(fileBean.getSize()),
+                Formatter.format(fileBean.getFileId()),
+                fileBean.getFullFileName().toString(),
+                ChecksumBuilder.getBytesToHex(fileBean.getChecksum())
             );
         } else {
-            log.info(
-                fileBean.getFullFileName().toString() + " " + ChecksumBuilder.getBytesToHex(fileBean.getChecksum()));
+            log.info("{} {}", fileBean.getFullFileName(), ChecksumBuilder.getBytesToHex(fileBean.getChecksum()));
         }
     }
 
     public void run() {
 
-        log.info(this.getClass().getSimpleName() + " started");
+        log.info("{} started", getServiceName());
         Future<FileBean> futureTask;
         CallableFileChecksummer callableFileChecksummer;
 
@@ -65,6 +71,7 @@ public class ChecksumWriteService implements Runnable {
             try {
                 futureTask = executorCompletionService.poll(500, TimeUnit.MILLISECONDS);
             } catch (InterruptedException ignore) {
+                log.error("{} was interrupted", getServiceName());
                 futureTask = null;
             }
 
@@ -74,18 +81,22 @@ public class ChecksumWriteService implements Runnable {
 
                 FileBean fileBean = callableFileChecksummer.getFileBean();
 
-                printFileBean(fileBean);
+                logFileBean(fileBean);
 
-                fileRowUpdater.update(fileBean);
+                fileBeanUpdater.update(fileBean);
             }
 
         } while (!productionEnded || futureTask != null);
 
-        fileRowUpdater.close();
+        try {
+            fileBeanUpdater.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         isTerminated.set(true);
 
-        log.info(this.getClass().getSimpleName() + " stopped");
+        log.info("{} stopped", getServiceName());
     }
 
 }

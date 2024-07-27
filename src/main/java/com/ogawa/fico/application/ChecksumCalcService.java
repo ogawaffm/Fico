@@ -1,5 +1,8 @@
 package com.ogawa.fico.application;
 
+import static com.ogawa.fico.db.Util.executeIteratively;
+import static com.ogawa.fico.db.Util.getSql;
+
 import com.ogawa.fico.checksum.FileChecksumBuilder;
 import com.ogawa.fico.multithreading.ExtendedExecutorCompletionService;
 import com.ogawa.fico.multithreading.ExtendedFutureTask;
@@ -7,7 +10,11 @@ import com.ogawa.fico.multithreading.ExtendedThreadFactory;
 import com.ogawa.fico.multithreading.ExtendedThreadPoolExecutor;
 import com.ogawa.fico.multithreading.ThreadPoolExecutorStatistics;
 import com.ogawa.fico.multithreading.ThreadUtils;
+import com.ogawa.fico.scan.FileBean;
+import com.ogawa.fico.scan.FileBeanProvider;
+import com.ogawa.fico.scan.FileCandidateMarker;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Comparator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -57,8 +64,8 @@ public class ChecksumCalcService {
     }
 
     private void showStatistics(ExtendedThreadPoolExecutor executor, ThreadPoolExecutorStatistics statistics) {
-        log.info("Queue size:" + executor.getQueue().size());
-        log.info("Statistics:" + statistics);
+        log.info("Queue size: {}", executor.getQueue().size());
+        log.info("Statistics: {}", statistics);
     }
 
     private void waitUntilAllChecksumsAreCalculated(ExtendedThreadPoolExecutor executor,
@@ -85,7 +92,7 @@ public class ChecksumCalcService {
 
     }
 
-    public long calcFileChecksums(Connection connection) {
+    public long calcFileChecksums(Connection connection) throws SQLException {
 
         ExtendedThreadPoolExecutor executor = getExecutor();
 
@@ -105,7 +112,7 @@ public class ChecksumCalcService {
 
         Callable<FileBean> callableFileChecksummer;
 
-        ExtendedFutureTask<FileBean> futureTask = null;
+        ExtendedFutureTask<FileBean> futureTask;
 
         long fileCount = 0;
         long rejectionCount = 0;
@@ -122,12 +129,15 @@ public class ChecksumCalcService {
 
             callableFileChecksummer = new CallableFileChecksummer(fileChecksumBuilder, fileBean);
 
+            futureTask = null;
+
             do {
 
                 try {
                     futureTask = executorCompletionService.submit(callableFileChecksummer);
                 } catch (RejectedExecutionException rejectedExecutionException) {
-                    log.info("RejectedExecutionException: " + ++rejectionCount);
+                    log.debug("RejectedExecutionException: {} (FileID: {}, {})", ++rejectionCount, fileBean.getFileId(),
+                        fileBean.getFullFileName());
                     ThreadUtils.waitSeconds(1);
                 }
 
@@ -153,12 +163,29 @@ public class ChecksumCalcService {
 
     }
 
-    public void calc(Connection connection) {
+    static private final String UPDATE_DIRECTORY_CHECKSUM = "UpdateDirectoryChecksum";
+
+    static private long calcDirChecksums(Connection connection) {
+
+        long totalUpdatedDirCount;
+
+        log.info("Calculating directory checksums...");
+
+        totalUpdatedDirCount = executeIteratively(connection, getSql(UPDATE_DIRECTORY_CHECKSUM), "directories");
+
+        log.info("Finished calculating directory checksums");
+
+        return totalUpdatedDirCount;
+
+    }
+
+
+    public void calc(Connection connection) throws SQLException {
 
         FileCandidateMarker.mark(connection);
         fileCount = calcFileChecksums(connection);
 
-        dirCount = DirChecksumCalculator.calc(connection);
+        dirCount = calcDirChecksums(connection);
 
     }
 

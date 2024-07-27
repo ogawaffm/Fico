@@ -15,23 +15,23 @@ public class Formatter {
     static final NumberFormatter numberFormatter = new NumberFormatter();
 
     public static String format(LocalDateTime localDateTime) {
-        return localDateTimeFormatter.format(localDateTime);
+        return localDateTime == null ? "null" : localDateTimeFormatter.format(localDateTime);
     }
 
     public static String format(Duration duration) {
-        return durationFormatter.format(duration);
+        return duration == null ? "null" : durationFormatter.format(duration);
     }
 
     public static String format(Double dbl) {
-        return numberFormatter.format(dbl);
+        return dbl == null ? "null" : numberFormatter.format(dbl);
     }
 
     public static String format(Long lng) {
-        return numberFormatter.format(lng);
+        return lng == null ? "null" : numberFormatter.format(lng);
     }
 
     public static String format(Integer integer) {
-        return numberFormatter.format(integer);
+        return integer == null ? "null" : numberFormatter.format(integer);
     }
 
 }

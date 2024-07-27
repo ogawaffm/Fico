@@ -3,14 +3,18 @@ package com.ogawa.fico.exception;
 /**
  * Marker class for exceptions thrown for command line errors.
  */
-public class CommandLineError extends RuntimeException {
+public abstract class CommandLineError extends ApplicationError {
 
-    public CommandLineError(String message) {
-        super(message);
+    CommandLineError(String message) {
+        this(message, null);
     }
 
-    public CommandLineError(Throwable cause) {
+    CommandLineError(Throwable cause) {
         super(cause);
+    }
+
+    CommandLineError(String message, Throwable cause) {
+        super(message, cause);
     }
 
 }

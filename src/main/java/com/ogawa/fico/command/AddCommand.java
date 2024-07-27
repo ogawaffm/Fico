@@ -1,16 +1,18 @@
 package com.ogawa.fico.command;
 
-import com.ogawa.fico.PersistingFileVisitor;
+import com.ogawa.fico.scan.FileScanService;
+import com.ogawa.fico.scan.FileScanner;
+import com.ogawa.fico.scan.SimpleFileScanner;
 import com.ogawa.fico.command.argument.CommandWithAtLeastOneArg;
-import com.ogawa.fico.db.FileIdSequenceFactory;
-import com.ogawa.fico.db.FileRowCreator;
-import com.ogawa.fico.db.ScanRowWriter;
-import com.ogawa.fico.db.Sequence;
-import com.ogawa.fico.exception.CommandLineError;
-import java.io.IOException;
+import com.ogawa.fico.exception.ExecutionError;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 // TODO: iterate over all paths given
@@ -21,6 +23,7 @@ public class AddCommand extends DatabaseCommand implements CommandWithAtLeastOne
 
     AddCommand(String[] commandArguments) {
         super(commandArguments);
+        // assure all paths are valid or throw an exception
         checkPaths();
     }
 
@@ -29,48 +32,64 @@ public class AddCommand extends DatabaseCommand implements CommandWithAtLeastOne
         return KEY_WORD;
     }
 
-    private Path getRootPath() {
-        return Path.of(getArgument(0));
+    /**
+     * Get a unique set of root paths to scan. Duplicate paths will be ignored.
+     *
+     * @return Set of root paths
+     */
+    private Set<Path> getRootPathSet() {
+        Map<Path, Path> rootPathMap = new LinkedHashMap<>();
+        int pathNumber = 0;
+        for (int i = 0; i < getArgumentCount(); i++) {
+            Path rootPath = Path.of(getArgument(i));
+            pathNumber = rootPathMap.size();
+            rootPathMap.put(rootPath.toAbsolutePath(), rootPath);
+            if (rootPathMap.size() == pathNumber) {
+                log.warn("Duplicate path will be ignored: " + rootPath);
+            }
+        }
+        return new LinkedHashSet<>(rootPathMap.keySet());
     }
 
+    private void throwNoSuchFileException(String path) {
+        throw new ExecutionError("File, directory or UNC not found or invalid: " + path,
+            new NoSuchFileException(path)
+        );
+    }
+
+    /**
+     * Check if all paths are valid. If not, an exception will be thrown.
+     */
     private void checkPaths() {
-        for (int i = 0; i < getArgumentCount() - 1; i++) {
-            String path = getArgument(i);
-            if (!Files.exists(Path.of(path))) {
-                throw new CommandLineError("File, dir or UNC not found or invalid: " + path);
+        for (int i = 0; i < getArgumentCount(); i++) {
+            String argument = getArgument(i);
+            try {
+                Path path = Path.of(argument);
+                if (!Files.exists(path)) {
+                    throwNoSuchFileException(argument);
+                }
+            } catch (InvalidPathException invalidPathException) {
+                throwNoSuchFileException(argument);
             }
         }
     }
 
     public void execute() {
 
-        ScanRowWriter scanRowWriter = new ScanRowWriter(getConnection());
+        FileScanner fileScanner;
 
-        long scanId = scanRowWriter.create(getRootPath());
-
-        Sequence fileIdSequence = FileIdSequenceFactory.getFileIdSequence(getConnection(), scanId);
-
-        FileRowCreator fileRowCreator = new FileRowCreator(getConnection());
-
-        PersistingFileVisitor fileVisitor = new PersistingFileVisitor(
-            scanId, getRootPath(), fileIdSequence, fileRowCreator
-        );
-
-        scanRowWriter.updateStarted(scanId, new Date());
-
-        try {
-            fileVisitor.walk();
-        } catch (IOException ioException) {
-            throw new RuntimeException(ioException);
+        if (getRootPathSet().size() > 1) {
+            fileScanner = new FileScanService(getRootPathSet(), getDatabaseName());
+        } else {
+            fileScanner = new SimpleFileScanner(getRootPathSet().iterator().next(), getDatabaseName());
         }
 
-        fileRowCreator.close();
-        scanRowWriter.updateFinished(scanId, new Date());
-
-        log.info("Files " + fileVisitor.getFileCount()
-            + " from " + fileVisitor.getDirCount()
-            + " directories added to " + getDatabaseName()
-        );
+        try {
+            fileScanner.call();
+        } catch (Exception runtimeException) {
+            runtimeException.printStackTrace();
+            throw new RuntimeException("Error while scanning ", runtimeException);
+        }
 
     }
 
