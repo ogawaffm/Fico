@@ -5,6 +5,7 @@ import com.ogawa.fico.db.persistence.bindvarwriter.BindVarWriter;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapper;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapperSql;
 import java.sql.Connection;
+import lombok.NonNull;
 
 public class BatchedUpdater<B> extends BeanWriter<B> implements Updater<B> {
 
@@ -23,9 +24,14 @@ public class BatchedUpdater<B> extends BeanWriter<B> implements Updater<B> {
     }
 
     @Override
-    public B update(B bean) {
+    public void update(B bean) {
         write(bean);
-        return bean;
+    }
+
+    @Override
+    void write(@NonNull B bean) {
+        Object[] row = rowMapper.toRow(bean);
+        bindVarWriter.write(row);
     }
 
 }

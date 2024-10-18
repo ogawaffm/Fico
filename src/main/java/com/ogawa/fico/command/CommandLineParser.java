@@ -15,6 +15,7 @@ public class CommandLineParser {
 
         knownCommands.put(ListCommand.KEY_WORD, ListCommand::new);
         knownCommands.put(ExportCommand.KEY_WORD, ExportCommand::new);
+        knownCommands.put(OpenCommand.KEY_WORD, OpenCommand::new);
         knownCommands.put(HelpCommand.KEY_WORD, HelpCommand::new);
 
         knownCommands.put(RemoveCommand.KEY_WORD, RemoveCommand::new);

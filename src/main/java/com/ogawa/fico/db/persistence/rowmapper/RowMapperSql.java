@@ -87,16 +87,26 @@ public class RowMapperSql {
     private StringBuilder getSelectWithOufFilterSql(String tableExpression, String alias) {
         StringBuilder sb = new StringBuilder();
         sb.append(getSelectWithoutSrcSql(alias));
-        sb.append("\nFROM ").append(tableExpression).append("\n");
+        sb.append("\nFROM ").append(tableExpression);
+        if (!alias.isEmpty()) {
+            sb.append(" AS ").append(alias);
+        }
+        sb.append("\n");
         return sb;
     }
 
     public String getInsertSql(@NonNull String tableName) {
         StringBuilder sb = new StringBuilder();
         sb.append("INSERT INTO ").append(tableName).append(" (");
-        sb.append(getColumnExpressions(getNonPkColThenPkColNames(), ", ", "", false, ""));
+        List<String> columnNames;
+        if (rowMapper.hasGeneratedKeys()) {
+            columnNames = getNonPrimaryKeyColumnNames();
+        } else {
+            columnNames = getNonPkColThenPkColNames();
+        }
+        sb.append(getColumnExpressions(columnNames, ", ", "", false, ""));
         sb.append("\n)\nVALUES (");
-        sb.append(getBindVarPlaceholders(rowMapper.getColumnNames().size()));
+        sb.append(getBindVarPlaceholders(columnNames.size()));
         sb.append(")");
         return sb.toString();
     }
@@ -136,7 +146,7 @@ public class RowMapperSql {
             if (!alias.isEmpty()) {
                 sb.append(alias).append(".").append(columnName);
                 if (assureUnaliasedColumnNames) {
-                    sb.append(" AS ").append(alias).append(columnName);
+                    sb.append(" AS ").append(columnName);
                 }
             } else {
                 sb.append(columnName);

@@ -61,12 +61,21 @@ public class FileRowMapper implements RowMapper<FileBean> {
 
     @Override
     public Object[] getPrimaryKeyValues(FileBean object) {
-        return new Object[]{object.getFileId()};
+        if (object.getFileId() == null) {
+            return null;
+        } else {
+            return new Object[]{object.getFileId()};
+        }
     }
 
     @Override
     public void setPrimaryKeyValues(FileBean object, Object[] primaryKeyValues) {
         object.setFileId(toLongValue(primaryKeyValues[0]));
+    }
+
+    @Override
+    public boolean hasGeneratedKeys() {
+        return true;
     }
 
     @Override
@@ -81,7 +90,7 @@ public class FileRowMapper implements RowMapper<FileBean> {
             toLongValue(row[4]),
             (boolean) row[5],
             toIntegerValue(row[6]),
-            toIntegerValue(7),
+            toIntegerValue(row[7]),
             toLocalDateTime((java.sql.Timestamp) row[8]),
             toLocalDateTime((java.sql.Timestamp) row[9]),
             (byte[]) row[10],

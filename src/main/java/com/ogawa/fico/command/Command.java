@@ -125,7 +125,7 @@ public abstract class Command implements Runnable, ArgumentCardinality {
     }
 
     void throwExecutionError(Throwable cause) {
-        throw new ExecutionError(createMessage(null), cause);
+        throw new ExecutionError(createMessage(cause.getMessage()), cause);
     }
 
     @Override

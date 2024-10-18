@@ -1,8 +1,22 @@
-use: fico [<HELP>|<CREATE>|<RESET>|<DROP>|<ADD>|<REMOVE>|<REPLACE>|<ANALYZE>|<LIST>|<EXPORT>]
+use: fico [<HELP>|<START>|<STOP><CREATE>|<RESET>|<DROP>|<ADD>|<REMOVE>|<REPLACE>|<ANALYZE>|<LIST>|<EXPORT>]
 
 <HELP> - show help
 
     help
+
+<START> - Start the database server
+
+    start [-tcpAllowOthers] [-ifNotExists] [-tcpPort <Port>] [-baseDir <BaseDir>] [-traceLevel <TraceLevel>]
+
+    -tcpAllowOthers           allow other computers to connect to the database server
+    -ifNotExists              only start the database server if it is not already running
+    -tcpPort <Port>           port to use for the database server (default is 9092)
+    -baseDir <BaseDir>        directory to use for the database server (default is the current directory)
+    -traceLevel <TraceLevel>  trace level to use for the database server (default is 0)
+
+<STOP> - Stop the database server
+
+    stop
 
 <CREATE> - Create the database model in the database
 

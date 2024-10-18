@@ -2,6 +2,7 @@ package com.ogawa.fico.db.persistence.bindvarwriter;
 
 import com.ogawa.fico.jdbc.JdbcTransferor;
 import java.sql.*;
+import java.util.function.Consumer;
 
 public class BatchedBindVarWriter implements BindVarWriter {
 
@@ -10,6 +11,8 @@ public class BatchedBindVarWriter implements BindVarWriter {
     private final int batchSize;
     private int batchNo = 0;
     private int rowNum = 0;
+
+    private Consumer<Object[]> generatedKeyConsumer = null;
 
     public BatchedBindVarWriter(Connection connection,
         String sqlWithBindVariables, int batchSize, boolean commitAfterBatch) {
@@ -22,6 +25,10 @@ public class BatchedBindVarWriter implements BindVarWriter {
         this.commitAfterBatch = commitAfterBatch;
     }
 
+    public void setGeneratedKeyHandler(Consumer<Object[]> generatedKeyConsumer) {
+        this.generatedKeyConsumer = generatedKeyConsumer;
+    }
+
     private boolean isOpen() {
         boolean isOpen;
         try {
@@ -30,6 +37,11 @@ public class BatchedBindVarWriter implements BindVarWriter {
             isOpen = false;
         }
         return isOpen;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return !isOpen();
     }
 
     private boolean isBatchFull() {
@@ -109,6 +121,13 @@ public class BatchedBindVarWriter implements BindVarWriter {
 
         try {
             preparedStatement.executeBatch();
+            if (generatedKeyConsumer != null) {
+                ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+                while (generatedKeys.next()) {
+                    Object[] generatedKey = JdbcTransferor.resultSetToObjectArray(generatedKeys);
+                    generatedKeyConsumer.accept(generatedKey);
+                }
+            }
         } catch (SQLException executeBatchException) {
             throwFlushException("executing", batchNo, rowNum, executeBatchException);
         }

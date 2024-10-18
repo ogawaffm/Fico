@@ -14,6 +14,8 @@ public class Formatter {
 
     static final NumberFormatter numberFormatter = new NumberFormatter();
 
+    static final PercentageFormatter percentageFormatter = new PercentageFormatter();
+
     public static String format(LocalDateTime localDateTime) {
         return localDateTime == null ? "null" : localDateTimeFormatter.format(localDateTime);
     }
@@ -32,6 +34,10 @@ public class Formatter {
 
     public static String format(Integer integer) {
         return integer == null ? "null" : numberFormatter.format(integer);
+    }
+
+    public static String formatAsPercentage(Double percentage) {
+        return percentage == null ? null : percentageFormatter.format(percentage);
     }
 
 }

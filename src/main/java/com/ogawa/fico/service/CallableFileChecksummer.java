@@ -1,16 +1,14 @@
-package com.ogawa.fico.application;
+package com.ogawa.fico.service;
 
 import com.ogawa.fico.checksum.FileChecksumBuilder;
 import com.ogawa.fico.scan.FileBean;
 import java.time.LocalDateTime;
 import java.util.Comparator;
-import java.util.concurrent.Callable;
-import lombok.Getter;
 import lombok.NonNull;
 
-public class CallableFileChecksummer implements Callable<FileBean>, Comparator<CallableFileChecksummer> {
+public class CallableFileChecksummer implements BeanEncapsulatingCallable<FileBean>,
+    Comparator<CallableFileChecksummer> {
 
-    @Getter
     private final FileBean fileBean;
     private final FileChecksumBuilder fileChecksumBuilder;
 
@@ -29,6 +27,12 @@ public class CallableFileChecksummer implements Callable<FileBean>, Comparator<C
 
     @Override
     public int compare(CallableFileChecksummer o1, CallableFileChecksummer o2) {
-        return fileBean.compareTo(o1.getFileBean());
+        return fileBean.compareTo(o1.getBean());
     }
+
+    @Override
+    public FileBean getBean() {
+        return fileBean;
+    }
+
 }

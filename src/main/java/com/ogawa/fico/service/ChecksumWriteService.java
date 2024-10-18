@@ -1,7 +1,8 @@
-package com.ogawa.fico.application;
+package com.ogawa.fico.service;
 
 import com.ogawa.fico.checksum.ChecksumBuilder;
 import com.ogawa.fico.db.persistence.beanwriter.Updater;
+import com.ogawa.fico.db.persistence.beanwriter.Creator;
 import com.ogawa.fico.db.persistence.factory.FilePersistenceFactory;
 import com.ogawa.fico.multithreading.ExtendedExecutorCompletionService;
 import com.ogawa.fico.multithreading.ExtendedFutureTask;
@@ -17,8 +18,9 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ChecksumWriteService implements Runnable {
+public class ChecksumWriteService<B> implements Runnable {
 
+    private final Creator creator;
     private final Updater fileBeanUpdater;
     private final ThreadPoolExecutor producer;
 
@@ -31,6 +33,7 @@ public class ChecksumWriteService implements Runnable {
 
         this.producer = producer;
         fileBeanUpdater = new FilePersistenceFactory(connection).createUpdater();
+        creator = new FilePersistenceFactory(connection).createCreator();
         this.executorCompletionService = executorCompletionService;
     }
 
@@ -79,7 +82,7 @@ public class ChecksumWriteService implements Runnable {
 
                 callableFileChecksummer = (CallableFileChecksummer) ((ExtendedFutureTask<FileBean>) futureTask).getTask();
 
-                FileBean fileBean = callableFileChecksummer.getFileBean();
+                FileBean fileBean = callableFileChecksummer.getBean();
 
                 logFileBean(fileBean);
 

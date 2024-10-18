@@ -32,9 +32,25 @@ public interface RowMapper<T> {
      */
     Object[] toRow(T object);
 
+    default Object[] toInsertRow(T object) {
+        if (hasGeneratedKeys()) {
+            Object[] rowWithOutKeys = new Object[getColumnNames().size() - getPrimaryKeyColumnNames().size()];
+            System.arraycopy(toRow(object), 0, rowWithOutKeys, 0, rowWithOutKeys.length);
+            return rowWithOutKeys;
+        } else {
+            return toRow(object);
+        }
+    }
+
     Object[] getPrimaryKeyValues(T object);
 
+    default boolean isPrimaryKeySet(T object) {
+        return getPrimaryKeyValues(object) != null;
+    }
+
     void setPrimaryKeyValues(T object, Object[] primaryKeyValues);
+
+    boolean hasGeneratedKeys();
 
     default String primaryKeyToString(T bean) {
         Object[] primaryKey = getPrimaryKeyValues(bean);

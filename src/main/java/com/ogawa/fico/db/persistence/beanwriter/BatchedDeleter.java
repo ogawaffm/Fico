@@ -5,6 +5,7 @@ import com.ogawa.fico.db.persistence.bindvarwriter.BindVarWriter;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapper;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapperSql;
 import java.sql.Connection;
+import lombok.NonNull;
 
 public class BatchedDeleter<B> extends BeanWriter<B> implements Deleter<B> {
 
@@ -23,9 +24,14 @@ public class BatchedDeleter<B> extends BeanWriter<B> implements Deleter<B> {
     }
 
     @Override
-    public B delete(B bean) {
+    public void delete(B bean) {
         write(bean);
-        return bean;
+    }
+
+    @Override
+    void write(@NonNull B bean) {
+        Object[] row = rowMapper.toRow(bean);
+        bindVarWriter.write(row);
     }
 
 }

@@ -5,6 +5,7 @@ import com.ogawa.fico.db.persistence.rowmapper.RowMapper;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapperSql;
 import java.sql.Connection;
 import java.sql.SQLException;
+import lombok.NonNull;
 
 public class ImmediateUpdater<B> extends BeanWriter<B> implements Updater<B> {
 
@@ -15,9 +16,13 @@ public class ImmediateUpdater<B> extends BeanWriter<B> implements Updater<B> {
     }
 
     @Override
-    public B update(B bean) {
+    public void update(B bean) {
         write(bean);
-        return bean;
     }
 
+    @Override
+    void write(@NonNull B bean) {
+        Object[] row = rowMapper.toRow(bean);
+        bindVarWriter.write(row);
+    }
 }

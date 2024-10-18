@@ -1,17 +1,17 @@
-UPDATE file d
+UPDATE FILE DirToUpdate
 SET (SIZE, FILES_CONTAINED, DIRS_CONTAINED) = (
     SELECT SUM(SIZE)                                        SIZE,
-           SUM(CASE WHEN f.IS_DIR = FALSE THEN 1 ELSE 0 END) FILES_CONTAINED,
-           SUM(CASE WHEN f.IS_DIR = TRUE THEN 1 ELSE 0 END) DIRS_CONTAINED
-    FROM file f
-    WHERE f.dir_id = d.FILE_ID
-    GROUP BY f.dir_id
-    HAVING COUNT(*) = COUNT(f.SIZE)
+           SUM(CASE WHEN File.IS_DIR = FALSE THEN 1 ELSE 0 END) FILES_CONTAINED,
+           SUM(CASE WHEN File.IS_DIR = TRUE THEN 1 ELSE 0 END) DIRS_CONTAINED
+    FROM FILE File
+    WHERE File.DIR_ID = DirToUpdate.FILE_ID
+    GROUP BY File.DIR_ID
+    HAVING COUNT(*) = COUNT(File.SIZE)
     )
-WHERE d.SIZE IS NULL
-  AND d.file_id IN (
-    SELECT f.DIR_ID
-    FROM file f
-    GROUP BY f.dir_id
-    HAVING COUNT(*) = COUNT(f.SIZE)
+WHERE DirToUpdate.SIZE IS NULL AND DirToUpdate.IS_DIR = TRUE AND DirToUpdate.SCAN_ID = ?
+  AND DirToUpdate.FILE_ID IN (
+    SELECT FileInDir.DIR_ID
+    FROM FILE FileInDir
+    GROUP BY FileInDir.DIR_ID
+    HAVING COUNT(*) = COUNT(FileInDir.SIZE)
     )

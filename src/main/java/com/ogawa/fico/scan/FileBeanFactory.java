@@ -1,6 +1,5 @@
 package com.ogawa.fico.scan;
 
-import com.ogawa.fico.db.Sequence;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.LocalDateTime;
@@ -9,16 +8,7 @@ import lombok.NonNull;
 
 public class FileBeanFactory {
 
-    private final long scanId;
-
-    private final Sequence fileIdSequence;
-
-    public FileBeanFactory(long scanId, Sequence fileIdSequence) {
-        this.scanId = scanId;
-        this.fileIdSequence = fileIdSequence;
-    }
-
-    static public FileBean create(Long fileId, Long dirId, long scanId, Path filename, Long size,
+    static public FileBean create(Long fileId, Long dirId, Long scanId, Path filename, Long size,
         boolean isDirectory, Integer filesContained, Integer dirsContained,
         LocalDateTime modificationTime, LocalDateTime creationTime,
         byte[] checksum, LocalDateTime calcStarted, LocalDateTime calcFinished) {
@@ -41,12 +31,12 @@ public class FileBeanFactory {
         return fileBean;
     }
 
-    public FileBean create(Long parentDirId, long scanId,
+    static public FileBean create(Long parentDirId, long scanId,
         @NonNull Path filename,
         @NonNull BasicFileAttributes attributes) {
 
         return create(
-            fileIdSequence.next(),
+            null, //fileIdSequence.next(),
             parentDirId,
             scanId,
             filename,

@@ -73,7 +73,8 @@ public abstract class BaseBeanReader<B> implements BeanReader<B> {
         }
     }
 
-    boolean isClosed() {
+    @Override
+    public boolean isClosed() {
         return resultSet == null;
     }
 

@@ -1,18 +1,23 @@
-UPDATE file d
+UPDATE FILE DirToUpdate
 SET CHECKSUM = (
-    SELECT cast(HASH('SHA-256', listagg(rawtohex(f.CHECKSUM), '') WITHIN GROUP (ORDER BY f.name)) as varbinary(32)) CHECKSUM
-    FROM file f
-    WHERE f.dir_id = d.FILE_ID
-    GROUP BY f.dir_id
-    HAVING COUNT(*) = COUNT(f.CHECKSUM)
-       and COUNT(*) > 0
+    SELECT COALESCE(CAST(HASH('SHA-256', LISTAGG(
+            rawtohex(FileInDir.CHECKSUM)
+        , '') WITHIN GROUP (ORDER BY FileInDir.NAME)) as varbinary(32)
+           ), X'0000000000000000000000000000000000000000000000000000000000000000') CHECKSUM
+    FROM FILE Dir
+             LEFT OUTER JOIN FILE FileInDir
+                             ON Dir.FILE_ID = FileInDir.DIR_ID
+    WHERE Dir.FILE_ID= DirToUpdate.FILE_ID
+    GROUP BY Dir.FILE_ID
+    HAVING COUNT(FileInDir.DIR_ID) = COUNT(FileInDir.CHECKSUM) OR COUNT(*) = 0
     )
-WHERE d.IS_DIR = TRUE
-  AND d.CHECKSUM IS NULL
-  and d.file_id in (
-    SELECT f.DIR_ID
-    FROM file f
-    GROUP BY f.dir_id
-    HAVING COUNT(*) = COUNT(f.CHECKSUM)
-       AND COUNT(*) > 0
+WHERE DirToUpdate.FILE_ID IN (
+    SELECT Dir.FILE_ID
+    FROM FILE Dir
+    LEFT OUTER JOIN FILE FileInDir
+        ON Dir.FILE_ID = FileInDir.DIR_ID
+    WHERE ARRAY_CONTAINS(?, Dir.SCAN_ID) AND
+          Dir.IS_DIR = TRUE AND Dir.CHECKSUM IS NULL
+    GROUP BY Dir.FILE_ID
+    HAVING COUNT(FileInDir.DIR_ID) = COUNT(FileInDir.CHECKSUM) OR COUNT(*) = 0
     )

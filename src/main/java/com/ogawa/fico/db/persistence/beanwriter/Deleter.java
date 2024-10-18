@@ -11,8 +11,7 @@ public interface Deleter<B> extends AutoCloseable {
      * Delete a bean.
      *
      * @param bean The bean to delete.
-     * @return The deleted bean.
      */
-    B delete(B bean);
+    void delete(B bean);
 
 }

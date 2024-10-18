@@ -52,4 +52,15 @@ public class ImmediateBindVarWriter implements BindVarWriter {
     public void close() throws Exception {
         closeSilently(preparedStatement);
     }
+
+    @Override
+    public boolean isClosed() {
+        boolean isClose;
+        try {
+            isClose = preparedStatement.isClosed();
+        } catch (SQLException ignore) {
+            isClose = true;
+        }
+        return isClose;
+    }
 }

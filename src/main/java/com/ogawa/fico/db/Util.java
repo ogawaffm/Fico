@@ -4,16 +4,14 @@ import com.ogawa.fico.application.Config;
 import com.ogawa.fico.jdbc.JdbcTransferor;
 import com.ogawa.fico.performance.logging.Formatter;
 import com.ogawa.fico.performance.measuring.StopWatch;
-import java.nio.file.Path;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -50,17 +48,20 @@ public class Util {
         return connection;
     }
 
-    static public <T> T getValue(Connection con, String sql, T defaultValue) {
+    static public <T> T getValue(Connection con, String sql, T defaultValue, Object... params) {
         List values = getValueList(con, sql, 1);
         return values.isEmpty() ? defaultValue : (T) values.get(0);
     }
 
-    static public List getValueList(Connection con, String sql, int columnIndex) {
+    static public List getValueList(Connection con, String sql, int columnIndex, Object... params) {
 
         List result = new ArrayList<>();
 
         try (PreparedStatement preparedStatement = con.prepareStatement(sql)) {
 
+            if (params != null && params.length > 0) {
+                JdbcTransferor.setBindVars(preparedStatement, params);
+            }
             ResultSet rs = preparedStatement.executeQuery();
 
             while (rs.next()) {
@@ -72,6 +73,51 @@ public class Util {
 
         return result;
 
+    }
+
+    static JDBCType getJdbcType(Class<?> clazz) {
+        if (clazz == null) {
+            return JDBCType.NULL;
+        } else if (clazz == Boolean.class) {
+            return JDBCType.BOOLEAN;
+        } else if (clazz == Byte.class) {
+            return JDBCType.TINYINT;
+        } else if (clazz == Short.class) {
+            return JDBCType.SMALLINT;
+        } else if (clazz == Integer.class) {
+            return JDBCType.INTEGER;
+        } else if (clazz == Long.class) {
+            return JDBCType.BIGINT;
+        } else if (clazz == String.class) {
+            return JDBCType.VARCHAR;
+        } else if (clazz == byte[].class) {
+            return JDBCType.BINARY;
+        } else if (clazz == java.sql.Date.class) {
+            return JDBCType.DATE;
+        } else if (clazz == java.sql.Time.class) {
+            return JDBCType.TIME;
+        } else if (clazz == java.sql.Timestamp.class) {
+            return JDBCType.TIMESTAMP;
+        } else {
+            return JDBCType.OTHER;
+        }
+    }
+
+    static Array createSqlArray(Connection connection, JDBCType jdbcType, Object[] array) {
+        try {
+            return connection.createArrayOf(jdbcType.getName(), array);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static public Array createSqlArray(Connection connection, Object[] array) {
+        if (array == null) {
+            return null;
+        } else {
+            JDBCType jdbcType = getJdbcType(array.getClass().getComponentType());
+            return createSqlArray(connection, jdbcType, array);
+        }
     }
 
     static public long execAndReturnRowsAffected(PreparedStatement preparedStatement) {
@@ -128,7 +174,7 @@ public class Util {
             }
         } catch (SQLException sqlException) {
             if (sqls.length > 1) {
-                throw new SQLException("Error executing script no #" + scriptNo + " of " + batchScriptName,
+                throw new SQLException("Error executing command no #" + scriptNo + " of script " + batchScriptName,
                     sqlException);
             } else {
                 throw sqlException;
@@ -139,7 +185,7 @@ public class Util {
 
     }
 
-    static public long execute(Connection connection, String sql, String pluralItemName) {
+    static public long execute(Connection connection, String sql, String itemCountInTimeMessage, Object... params) {
 
         PreparedStatement preparedStatement;
         long recordAffected;
@@ -149,6 +195,7 @@ public class Util {
 
         try {
             preparedStatement = connection.prepareStatement(sql);
+            JdbcTransferor.setBindVars(preparedStatement, params);
             recordAffected = execAndReturnRowsAffected(preparedStatement);
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -156,44 +203,40 @@ public class Util {
 
         stopWatch.stop();
 
-        log.debug("Updated {} {} in {}", recordAffected, pluralItemName,
-            Formatter.format(stopWatch.getAccumulatedRecordedTime()));
+        log.debug(itemCountInTimeMessage, recordAffected, Formatter.format(stopWatch.getAccumulatedRecordedTime()));
 
         return recordAffected;
 
     }
 
-    static public long executeIteratively(Connection connection, String sql, String pluralItemName) {
+    static public long executeIteratively(Connection connection, String sql,
+        String updateStepCountTimeMessage, String finalMessageWithStepNoTime,
+        String totalUpdateCountStepCountTimeMessage,
+        Object... params) {
 
         PreparedStatement preparedStatement;
         try {
             preparedStatement = connection.prepareStatement(sql);
+            if (params != null) {
+                JdbcTransferor.setBindVars(preparedStatement, params);
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
 
-        return executeIteratively(preparedStatement, pluralItemName);
+        return executeIteratively(preparedStatement, updateStepCountTimeMessage, finalMessageWithStepNoTime,
+            totalUpdateCountStepCountTimeMessage);
 
     }
 
-    static public long executeIteratively(Connection connection, String sql, String pluralItemName, Object... params) {
-        PreparedStatement preparedStatement;
-        try {
-            preparedStatement = connection.prepareStatement(sql);
-            JdbcTransferor.setBindVars(preparedStatement, params);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        return executeIteratively(preparedStatement, pluralItemName);
-
-    }
-
-    static public long executeIteratively(PreparedStatement preparedStatement, String pluralItemName) {
+    static public long executeIteratively(PreparedStatement preparedStatement,
+        String updateStepCountTimeMessage, String finalStepMessageWithStepNoTime,
+        String totalUpdateCountStepCountTimeMessage
+    ) {
 
         long updateStepNo = 0;
-        long totalUpdatedDirCount = 0;
-        long updatedDirCount;
+        long totalUpdatedCount = 0;
+        long updatedCount;
 
         StopWatch stopWatch = StopWatch.create();
         stopWatch.pause();
@@ -202,7 +245,7 @@ public class Util {
             updateStepNo++;
 
             stopWatch.resume();
-            updatedDirCount = execAndReturnRowsAffected(preparedStatement);
+            updatedCount = execAndReturnRowsAffected(preparedStatement);
             try {
                 preparedStatement.getConnection().commit();
             } catch (SQLException e) {
@@ -210,50 +253,43 @@ public class Util {
             }
             stopWatch.pause();
 
-            totalUpdatedDirCount = totalUpdatedDirCount + updatedDirCount;
+            totalUpdatedCount = totalUpdatedCount + updatedCount;
 
-            if (updatedDirCount > 0) {
-                log.debug("Step #{} updated {} {} in {}",
-                    updateStepNo, updatedDirCount, pluralItemName, Formatter.format(stopWatch.getLastRecordedTime())
+            if (updatedCount > 0) {
+                log.debug(updateStepCountTimeMessage,
+                    updateStepNo, updatedCount, Formatter.format(stopWatch.getLastRecordedTime())
                 );
             } else {
-                log.debug("Step #{} (final check step) took {}",
+                log.debug(finalStepMessageWithStepNoTime,
                     updateStepNo, Formatter.format(stopWatch.getLastRecordedTime())
                 );
             }
 
-        } while (updatedDirCount > 0);
+        } while (updatedCount > 0);
 
         stopWatch.stop();
 
         closeSilently(preparedStatement);
 
-        log.info("Updated {} {} in total in {} steps in {}",
-            totalUpdatedDirCount, pluralItemName, updateStepNo, Formatter.format(stopWatch.getAccumulatedRecordedTime())
+        log.info(totalUpdateCountStepCountTimeMessage,
+            totalUpdatedCount,
+            updateStepNo,
+            Formatter.format(stopWatch.getAccumulatedRecordedTime())
         );
 
-        return totalUpdatedDirCount;
+        return totalUpdatedCount;
 
     }
 
-    static public void closeSilently(ResultSet resultSet) {
+    /**
+     * Closes the given AutoCloseable silently. AutoCloseable for example are Connection, Statement, ResultSet
+     *
+     * @param autoCloseable AutoCloseable
+     */
+    static public void closeSilently(AutoCloseable autoCloseable) {
         try {
-            resultSet.close();
-        } catch (SQLException ignore) {
-        }
-    }
-
-    static public void closeSilently(Statement statement) {
-        try {
-            statement.close();
-        } catch (SQLException ignore) {
-        }
-    }
-
-    static public void closeSilently(Connection connection) {
-        try {
-            connection.close();
-        } catch (SQLException ignore) {
+            autoCloseable.close();
+        } catch (Exception ignore) {
         }
     }
 

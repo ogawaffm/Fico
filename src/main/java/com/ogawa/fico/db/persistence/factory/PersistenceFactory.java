@@ -1,8 +1,9 @@
 package com.ogawa.fico.db.persistence.factory;
 
+import com.ogawa.fico.db.persistence.beanreader.SeekingBeanReader;
 import com.ogawa.fico.db.persistence.beanreader.StaticBeanReader;
 import com.ogawa.fico.db.persistence.beanreader.BeanReader;
-import com.ogawa.fico.db.persistence.beanreader.ByPrimaryKeySeekingBeanReader;
+import com.ogawa.fico.db.persistence.beanreader.PrimaryKeySeekingBeanReader;
 import com.ogawa.fico.db.persistence.beanwriter.BatchedCreator;
 import com.ogawa.fico.db.persistence.beanwriter.BatchedDeleter;
 import com.ogawa.fico.db.persistence.beanwriter.BatchedUpdater;
@@ -15,7 +16,7 @@ import com.ogawa.fico.db.persistence.beanwriter.Updater;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapper;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapperSql;
 import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.Iterator;
 import lombok.NonNull;
 
 public abstract class PersistenceFactory<B> {
@@ -39,6 +40,10 @@ public abstract class PersistenceFactory<B> {
         this.defaultFetchSize = defaultFetchSize;
     }
 
+    public RowMapper<B> getRowMapper() {
+        return rowMapper;
+    }
+
     public Creator<B> createCreator() {
         return createCreator(defaultTableName, defaultBatchSize);
     }
@@ -59,45 +64,72 @@ public abstract class PersistenceFactory<B> {
         }
     }
 
-    public BeanReader<B> createReader() {
-        return createReader(defaultTableName);
+    public BeanReader<B> createTableReader() {
+        return createTableReader(defaultTableName);
     }
 
-    public BeanReader<B> createReader(int fetchSize) {
-        return createReader(defaultTableName, fetchSize);
+    public BeanReader<B> createTableReader(int fetchSize) {
+        return createTableReader(defaultTableName, fetchSize);
     }
 
-    public BeanReader<B> createReader(String tableName) {
-        return createReader(tableName, defaultFetchSize);
+    public BeanReader<B> createTableReader(String tableName) {
+        return createTableReader(tableName, defaultFetchSize);
     }
 
-    public BeanReader<B> createReader(String tableName, int fetchSize) {
+    public BeanReader<B> createTableReader(String tableName, int fetchSize) {
         return new StaticBeanReader<>(
             connection,
-            new RowMapperSql(rowMapper).getSelectFromTableSql(tableName, true),
+            new RowMapperSql(rowMapper).getSelectFromTableSql(tableName, false),
             fetchSize,
             rowMapper
         );
     }
 
-    private ByPrimaryKeySeekingBeanReader<B> createSeekingReader(String sqlWithSeekBindVariables) {
-        return new ByPrimaryKeySeekingBeanReader<>(connection, sqlWithSeekBindVariables, defaultFetchSize, rowMapper);
+    public BeanReader<B> createSqlReader(String sql) {
+        return createSqlReader(sql, defaultFetchSize);
     }
 
-    private ByPrimaryKeySeekingBeanReader<B> createSeekingReader(String sqlWithSeekBindVariables, int fetchSize) {
-        return new ByPrimaryKeySeekingBeanReader<>(connection, sqlWithSeekBindVariables, fetchSize, rowMapper);
+    public BeanReader<B> createSqlReader(String sql, int fetchSize) {
+        return new StaticBeanReader<>(
+            connection,
+            new RowMapperSql(rowMapper).getSelectFromSubSelectSql(sql),
+            fetchSize,
+            rowMapper
+        );
     }
 
-    public ByPrimaryKeySeekingBeanReader<B> createByPrimaryKeySeekingReader() {
+    public SeekingBeanReader<B> createSeekingReader(String sqlWithSeekBindVariables) {
+        return createSeekingReader(sqlWithSeekBindVariables, defaultFetchSize);
+    }
+
+    public SeekingBeanReader<B> createSeekingReader(String sqlWithSeekBindVariables, int fetchSize) {
+        return new SeekingBeanReader<>(
+            connection,
+            new RowMapperSql(rowMapper).getSelectFromSubSelectSql(sqlWithSeekBindVariables),
+            fetchSize,
+            rowMapper
+        );
+    }
+
+    public PrimaryKeySeekingBeanReader<B> createByPrimaryKeySeekingReader() {
         return createByPrimaryKeySeekingReader(defaultTableName);
     }
 
-    public ByPrimaryKeySeekingBeanReader<B> createByPrimaryKeySeekingReader(String tableName) {
-        return new ByPrimaryKeySeekingBeanReader<>(
+    public PrimaryKeySeekingBeanReader<B> createByPrimaryKeySeekingReader(String tableName) {
+        return new PrimaryKeySeekingBeanReader<>(
             connection,
             new RowMapperSql(rowMapper).getSelectFromTableSql(tableName, true),
             1,
-            rowMapper);
+            rowMapper
+        );
+    }
+
+    public Iterator<B> createIterator(BeanReader<B> beanReader, boolean closeIfNoNext) {
+        return createIterator(beanReader, closeIfNoNext, 0);
+    }
+
+    public Iterator<B> createIterator(BeanReader<B> beanReader, boolean closeIfNoNext, long rowLimit) {
+        return new BeanReaderIterator<>(beanReader, closeIfNoNext, rowLimit);
     }
 
     public Updater<B> createUpdater() {

@@ -1,13 +1,20 @@
 package com.ogawa.fico.scan;
 
-import com.ogawa.fico.db.Sequence;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
+import com.ogawa.fico.misc.System;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import lombok.NonNull;
 
 public class ScanBeanFactory {
+
+    static public ScanBean create(String root) {
+        return create(
+            null,
+            System.getPid(),
+            System.getHostName(),
+            System.getUsername(),
+            root,
+            null,
+            null);
+    }
 
     static public ScanBean create(Long scanId, Long processId, String hostName, String userName, String root,
         LocalDateTime started, LocalDateTime finished) {

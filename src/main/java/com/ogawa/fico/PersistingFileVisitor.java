@@ -1,9 +1,19 @@
 package com.ogawa.fico;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
 import com.ogawa.fico.db.persistence.beanwriter.Creator;
 import com.ogawa.fico.scan.FileBean;
 import com.ogawa.fico.scan.FileBeanFactory;
-import com.ogawa.fico.db.Sequence;
+import com.ogawa.fico.scan.fileformat.office.OfficeFileDocSummaryInfo;
+import com.ogawa.fico.scan.fileformat.office.OfficeFileFormat;
+import com.ogawa.fico.scan.fileformat.office.OfficeFileSummaryInfo;
+import com.ogawa.fico.scan.fileformat.office.OfficeBinFileSummeryReader;
+import com.ogawa.fico.service.FileNaming;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -14,14 +24,16 @@ import java.util.Objects;
 import java.util.Stack;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import com.ogawa.fico.scan.fileformat.image.MediaMetadataReader;
+import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 
 @Slf4j
 public class PersistingFileVisitor implements FileVisitor<Path> {
 
     private final Path path;
 
-    private final FileBeanFactory fileBeanFactory;
-    private final Creator creator;
+    private final Creator<FileBean> dirCreator;
+    private final Creator<FileBean> fileCreator;
     private final long scanId;
 
     private Long dirId = null;
@@ -37,13 +49,12 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     @Getter
     private long totalSize = 0;
 
-    public PersistingFileVisitor(long scanId, Path path, Sequence fileIdSequence, Creator fileRowCreator) {
-
+    public PersistingFileVisitor(long scanId, Path path, Creator<FileBean> dirRowCreator,
+        Creator<FileBean> fileRowCreator) {
         this.scanId = scanId;
         this.path = path;
-        this.creator = fileRowCreator;
-        this.fileBeanFactory = new FileBeanFactory(scanId, fileIdSequence);
-
+        this.dirCreator = dirRowCreator;
+        this.fileCreator = fileRowCreator;
     }
 
     public void walk() throws IOException {
@@ -68,14 +79,20 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) {
 
-        FileBean fileBean = fileBeanFactory.create(dirId, scanId, dir, attributes);
-        creator.create(fileBean);
+        if (FileNaming.isRecycleBin(dir.toString())) {
+            log.debug("Scan #{}: Skipping Recycle Bin directory {}", scanId, dir);
+            return FileVisitResult.SKIP_SUBTREE;
+        }
+
+        FileBean dirBean = FileBeanFactory.create(dirId, scanId, dir, attributes);
+
+        dirCreator.create(dirBean);
 
         dirIdStack.push(dirId);
 
-        logDirChange("Entering", dir, fileBean.getFileId(), dirId);
+        logDirChange("Entering", dir, dirBean.getFileId(), dirId);
 
-        dirId = fileBean.getFileId();
+        dirId = dirBean.getFileId();
 
         dirCount++;
 
@@ -94,9 +111,46 @@ public class PersistingFileVisitor implements FileVisitor<Path> {
 
         if (!attributes.isDirectory()) {
 
-            FileBean fileBean = fileBeanFactory.create(dirId, scanId, file, attributes);
+            FileBean fileBean = FileBeanFactory.create(dirId, scanId, file, attributes);
 
-            creator.create(fileBean);
+            if (false && MediaMetadataReader.isSupportedFileType(file)) {
+                File mediaFile = new File(file.toString());
+                try {
+                    Metadata metadata = ImageMetadataReader.readMetadata(mediaFile);
+                    for (Directory directory : metadata.getDirectories()) {
+                        System.err.println("Directory: " + directory.getClass().getName());
+                        for (Tag tag : directory.getTags()) {
+                            System.out.println(tag.getTagTypeHex() + " " + tag);
+                        }
+                    }
+                } catch (ImageProcessingException e) {
+                    log.info("Scan #{}: Could not read metadata of {}. {}", scanId, file, e.getMessage());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            if (false && OfficeBinFileSummeryReader.isSupportedFileType(file)
+                && !OfficeFileFormat.fromFilename(file.toString()).isXmlBased()
+            ) {
+                System.err.println("Office file: " + file);
+                log.info("Scan #{}: Reading office file summary info of {}", scanId, file);
+                try {
+                    OfficeFileSummaryInfo officeFileSummary = OfficeBinFileSummeryReader.readSummaryInfo(file);
+                    OfficeFileDocSummaryInfo officeFileDocSummary = OfficeBinFileSummeryReader.readDocSummaryInfo(
+                        file);
+                    if (officeFileDocSummary != null || officeFileSummary != null) {
+                        System.err.println(officeFileDocSummary);
+                        System.err.println(officeFileSummary);
+
+                    }
+                } catch (Exception e) {
+                    log.info("Scan #{}: Could not read office file summary info of {}. {}", scanId, file,
+                        e.getMessage());
+                }
+            }
+
+            fileCreator.create(fileBean);
 
             fileCount++;
 

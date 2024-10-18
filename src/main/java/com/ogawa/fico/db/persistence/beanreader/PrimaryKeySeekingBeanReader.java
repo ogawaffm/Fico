@@ -6,9 +6,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import lombok.NonNull;
 
-public class ByPrimaryKeySeekingBeanReader<B> extends BaseBeanReader<B> implements AutoCloseable {
+public class PrimaryKeySeekingBeanReader<B> extends BaseBeanReader<B> implements AutoCloseable {
 
-    public ByPrimaryKeySeekingBeanReader(Connection connection, String sqlWithBindVariables, int fetchSize,
+    public PrimaryKeySeekingBeanReader(Connection connection, String sqlWithBindVariables, int fetchSize,
         RowMapper<B> rowMapper) {
         super(connection, sqlWithBindVariables, fetchSize, rowMapper);
     }

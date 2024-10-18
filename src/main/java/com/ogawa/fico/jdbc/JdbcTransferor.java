@@ -3,6 +3,7 @@ package com.ogawa.fico.jdbc;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import com.ogawa.fico.db.Util;
 
 public class JdbcTransferor {
 
@@ -47,7 +48,14 @@ public class JdbcTransferor {
 
         try {
             for (columnNo = 1; columnNo <= row.length; columnNo++) {
-                preparedStatement.setObject(columnNo, row[columnNo - 1]);
+
+                Object value = row[columnNo - 1];
+
+                if (value != null && value.getClass().isArray() && value.getClass().getComponentType() != byte.class) {
+                    value = Util.createSqlArray(preparedStatement.getConnection(), (Object[]) value);
+                }
+                preparedStatement.setObject(columnNo, value);
+
             }
 
         } catch (SQLException setObjException) {

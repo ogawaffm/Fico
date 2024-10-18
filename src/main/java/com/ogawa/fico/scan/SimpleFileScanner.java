@@ -5,19 +5,18 @@ import static com.ogawa.fico.db.Util.executeIteratively;
 import static com.ogawa.fico.db.Util.getSql;
 
 import com.ogawa.fico.PersistingFileVisitor;
-import com.ogawa.fico.db.FileIdSequenceFactory;
-import com.ogawa.fico.db.ScanRowWriter;
-import com.ogawa.fico.db.Sequence;
 import com.ogawa.fico.db.persistence.beanwriter.Creator;
 import com.ogawa.fico.db.persistence.beanwriter.Updater;
 import com.ogawa.fico.db.persistence.factory.FilePersistenceFactory;
+import com.ogawa.fico.db.persistence.factory.PersistenceFactory;
 import com.ogawa.fico.db.persistence.factory.ScanPersistenceFactory;
 import com.ogawa.fico.performance.logging.Formatter;
+import com.ogawa.fico.performance.measuring.StopWatch;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Date;
+import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -33,13 +32,17 @@ public class SimpleFileScanner extends FileScanner {
         this.rootPath = rootPath;
     }
 
-    private long updateDirectories() {
+    private long updateDirectories(Long scanId) {
+
+        StopWatch stopWatch = StopWatch.create();
+        stopWatch.start();
+
         long totalUpdatedDirCount;
 
-        log.info("Calculating directory size and content...");
+        log.info("Scan #{} Calculating directory size and content...", scanId);
 
         totalUpdatedDirCount = execute(getConnection(), getSql(UPDATE_EMPTY_DIRECTORY_SIZE_AND_CONTENT),
-            "empty directories");
+            "Scan #" + scanId + " updated {} empty directories in {}", scanId);
 
         try {
             getConnection().commit();
@@ -49,9 +52,16 @@ public class SimpleFileScanner extends FileScanner {
 
         totalUpdatedDirCount =
             totalUpdatedDirCount + executeIteratively(getConnection(), getSql(UPDATE_DIRECTORY_SIZE_AND_CONTENT),
-                "directories");
+                "Scan #" + scanId + " step #{} updated {} directories in {}",
+                "Scan #" + scanId + " step #{} (final check step) took {}",
+                "Scan #" + scanId + " updated {} directories in {} steps in {}",
+                scanId);
 
-        log.info("Finished calculating directory size and content");
+        stopWatch.stop();
+        log.info("Scan #{} finished calculating of {} directory size and content in {}",
+            scanId,
+            totalUpdatedDirCount,
+            Formatter.format(stopWatch.getTotalTime()));
 
         return totalUpdatedDirCount;
     }
@@ -61,30 +71,37 @@ public class SimpleFileScanner extends FileScanner {
 
         Path absoluteRootPath = rootPath.toAbsolutePath();
 
-        ScanRowWriter scanRowWriter = new ScanRowWriter(getConnection());
+//        ScanRowWriter scanRowWriter = new ScanRowWriter(getConnection());
 
-        long scanId = scanRowWriter.create(rootPath);
-
-        // Not an absolute path?
-        if (!rootPath.equals(absoluteRootPath)) {
-            log.debug("Scan #{} resolved path to add from {} to {}", scanId, rootPath, absoluteRootPath);
-        }
+//        long scanId = scanRowWriter.create(rootPath);
 
         Connection connection = getConnection();
 
-        ScanPersistenceFactory scanPersistenceFactory = new ScanPersistenceFactory(getConnection());
-        Creator scanCreator = scanPersistenceFactory.createCreator();
+        PersistenceFactory scanPersistenceFactory = new ScanPersistenceFactory(getConnection());
+        Creator scanCreator = scanPersistenceFactory.createCreator(1);
         Updater scanUpdater = scanPersistenceFactory.createUpdater();
 
-        Sequence fileIdSequence = FileIdSequenceFactory.getFileIdSequence(connection, scanId);
+        ScanBean scan = ScanBeanFactory.create(absoluteRootPath.toString());
+        scan.setStarted(LocalDateTime.now());
 
+        // persist scan to database to get scanId
+        scanCreator.create(scan);
+
+        // Not an absolute path?
+        if (!rootPath.equals(absoluteRootPath)) {
+            log.debug("Scan #{} resolved path to add from {} to {}", scan.getScanId(), rootPath, absoluteRootPath);
+        }
+
+        // create an unbatched creator for directories to immediately persist them to retrieve dirId
+        Creator dirCreator = new FilePersistenceFactory(connection).createCreator(0);
         Creator fileCreator = new FilePersistenceFactory(connection).createCreator();
 
         PersistingFileVisitor fileVisitor = new PersistingFileVisitor(
-            scanId, absoluteRootPath, fileIdSequence, fileCreator
+            scan.getScanId(), absoluteRootPath, dirCreator, fileCreator
         );
 
-        scanRowWriter.updateStarted(scanId, new Date());
+//        scan.setFinished(LocalDateTime.now());
+//        scanUpdater.update(scan);
 
         try {
             fileVisitor.walk();
@@ -102,17 +119,25 @@ public class SimpleFileScanner extends FileScanner {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        scanRowWriter.updateFinished(scanId, new Date());
+//        scanRowWriter.updateFinished(scanId, new Date());
 
         log.info("Scan #{} added {} files from {} directories and total size of {} bytes to {} database",
-            scanId,
+            scan.getScanId(),
             Formatter.format((long) fileVisitor.getFileCount()),
             Formatter.format((long) fileVisitor.getDirCount()),
             Formatter.format((long) fileVisitor.getTotalSize()),
             getDatabaseName()
         );
 
-        updateDirectories();
+        updateDirectories(scan.getScanId());
+
+        scan.setFinished(LocalDateTime.now());
+        scanUpdater.update(scan);
+        try {
+            scanUpdater.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         return fileVisitor.getFileCount();
 

@@ -62,6 +62,8 @@ public class StopWatch extends StopWatchStatus {
      */
     private String name;
 
+    private long recordingCount = 0;
+
     /**
      * unique id of the stop watch
      */
@@ -140,6 +142,7 @@ public class StopWatch extends StopWatchStatus {
         this.stopTime = null;
         this.accumulatedRecordingTime = Duration.ZERO;
         this.state = State.RECORDING;
+        recordingCount++;
     }
 
     /**
@@ -176,10 +179,10 @@ public class StopWatch extends StopWatchStatus {
 
         // save pause time to be able to pause other stop watches using the same pause time
         this.pauseTime = pauseTime;
-        recordingEndTime = pauseTime;
 
-        // Is this a pause logAfter a recording (start/resume) and nota pause directly logAfter creation?
+        // Was this a pause of a real recording (after start/resume) and not a pause directly after creation?
         if (recordingBeginTime != null) {
+            recordingEndTime = pauseTime;
             // calculate the time between the last start/resume and the pause time and plus it to the measured time
             accumulatedRecordingTime = accumulatedRecordingTime.plus(
                 Duration.between(recordingBeginTime, pauseTime));
@@ -225,6 +228,7 @@ public class StopWatch extends StopWatchStatus {
         }
         recordingBeginTime = resumedTime;
         state = State.RECORDING;
+        recordingCount++;
     }
 
     /**
@@ -255,14 +259,21 @@ public class StopWatch extends StopWatchStatus {
         if (!isStoppable()) {
             throw new IllegalStateException("Cannot stop, stop watch is " + state.getVerb());
         }
-        if (stopTime.isBefore(recordingBeginTime)) {
+        if (recordingBeginTime != null && stopTime.isBefore(recordingBeginTime)) {
             throw new IllegalStateException("Stop time is logBefore start time");
         }
-
         this.stopTime = stopTime;
-        recordingEndTime = stopTime;
-        accumulatedRecordingTime = accumulatedRecordingTime.plus(Duration.between(recordingBeginTime, stopTime));
+
+        // stop without a prior start because first state was paused (directly after creation)?
+        if (recordingBeginTime == null) {
+            recordingEndTime = null;
+            accumulatedRecordingTime = Duration.ZERO;
+        } else {
+            recordingEndTime = stopTime;
+            accumulatedRecordingTime = accumulatedRecordingTime.plus(Duration.between(recordingBeginTime, stopTime));
+        }
         state = State.STOPPED;
+
     }
 
     /**
@@ -294,6 +305,10 @@ public class StopWatch extends StopWatchStatus {
         } else {
             return new StopWatchStatus(this);
         }
+    }
+
+    public long getRecordingCount() {
+        return recordingCount;
     }
 
     /* *********************************************************************************************************** */

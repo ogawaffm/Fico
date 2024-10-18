@@ -39,12 +39,10 @@ public class AddCommand extends DatabaseCommand implements CommandWithAtLeastOne
      */
     private Set<Path> getRootPathSet() {
         Map<Path, Path> rootPathMap = new LinkedHashMap<>();
-        int pathNumber = 0;
         for (int i = 0; i < getArgumentCount(); i++) {
             Path rootPath = Path.of(getArgument(i));
-            pathNumber = rootPathMap.size();
             rootPathMap.put(rootPath.toAbsolutePath(), rootPath);
-            if (rootPathMap.size() == pathNumber) {
+            if (rootPathMap.put(rootPath.toAbsolutePath(), rootPath) != null) {
                 log.warn("Duplicate path will be ignored: " + rootPath);
             }
         }

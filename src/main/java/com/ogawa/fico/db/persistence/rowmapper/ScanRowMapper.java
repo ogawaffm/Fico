@@ -30,13 +30,13 @@ public class ScanRowMapper implements RowMapper<ScanBean> {
     @Override
     public ScanBean toObject(Object[] row) {
         ScanBean scanBean = ScanBeanFactory.create(
+            toLongValue(row[6]),
             toLongValue(row[0]),
-            toLongValue(row[1]),
+            toStringValue(row[1]),
             toStringValue(row[2]),
             toStringValue(row[3]),
-            toStringValue(row[4]),
-            toLocalDateTime((java.sql.Timestamp) row[5]),
-            toLocalDateTime((java.sql.Timestamp) row[6])
+            toLocalDateTime((java.sql.Timestamp) row[4]),
+            toLocalDateTime((java.sql.Timestamp) row[5])
         );
         return scanBean;
     }
@@ -44,24 +44,33 @@ public class ScanRowMapper implements RowMapper<ScanBean> {
     @Override
     public Object[] toRow(ScanBean scanBean) {
         return new Object[]{
-            scanBean.getScanId(),
             scanBean.getProcessId(),
             scanBean.getHostName(),
             scanBean.getUserName(),
             scanBean.getRoot(),
             scanBean.getStarted(),
-            scanBean.getFinished()
+            scanBean.getFinished(),
+            scanBean.getScanId()
         };
 
     }
 
     @Override
     public Object[] getPrimaryKeyValues(ScanBean object) {
-        return new Object[]{object.getScanId()};
+        if (object.getScanId() == null) {
+            return null;
+        } else {
+            return new Object[]{object.getScanId()};
+        }
     }
 
     @Override
     public void setPrimaryKeyValues(ScanBean object, Object[] primaryKeyValues) {
         object.setScanId(toLongValue(primaryKeyValues[0]));
+    }
+
+    @Override
+    public boolean hasGeneratedKeys() {
+        return true;
     }
 }

@@ -24,10 +24,7 @@ public abstract class BeanWriter<B> implements AutoCloseable {
         this.bindVarWriter = bindVarWriter;
     }
 
-    void write(@NonNull B bean) {
-        Object[] var = rowMapper.toRow(bean);
-        bindVarWriter.write(var);
-    }
+    abstract void write(@NonNull B bean);
 
     @Override
     public void close() {

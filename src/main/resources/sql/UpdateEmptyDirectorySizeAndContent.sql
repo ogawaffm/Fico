@@ -1,9 +1,9 @@
-UPDATE file d
+UPDATE file DirToUpdate
 SET (SIZE, FILES_CONTAINED, DIRS_CONTAINED) = (0, 0, 0)
-WHERE d.SIZE IS NULL
-  AND d.file_id NOT IN (
-    SELECT f.DIR_ID
-    FROM file f
-    WHERE f.dir_id = d.FILE_ID
-    GROUP BY f.dir_id
+WHERE DirToUpdate.SIZE IS NULL AND DirToUpdate.IS_DIR = TRUE AND DirToUpdate.SCAN_ID = ?
+  AND DirToUpdate.FILE_ID NOT IN (
+    SELECT File.DIR_ID
+    FROM FILE File
+    WHERE File.DIR_ID = DirToUpdate.FILE_ID
+    GROUP BY File.DIR_ID
 )
