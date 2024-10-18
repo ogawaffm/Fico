@@ -2,9 +2,6 @@ package com.ogawa.fico.command;
 
 import com.ogawa.fico.command.argument.CommandWithAtLeastOneArg;
 import com.ogawa.fico.exception.ExecutionError;
-import com.ogawa.fico.scan.FileScanService;
-import com.ogawa.fico.scan.FileScanner;
-import com.ogawa.fico.scan.SimpleFileScanner;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;

@@ -146,29 +146,22 @@ public class ExtendedFutureTaskTests {
 
         eft = new ExtendedFutureTask(runnable);
 
-        System.out.println(LocalDateTime.now());
         new Thread(eft).start();
 
         TestTask.waitUntilStarted(runnable);
-        System.out.println(LocalDateTime.now());
 
         assertTrue(!eft.isFinished());
-
-        System.out.println(LocalDateTime.now());
 
         // ******** cancel ********
         eft.cancel(true);
 
         TestTask.waitUntilFinished(runnable);
-        System.out.println(LocalDateTime.now());
 
         // the task must be cancelled
         assertTrue(eft.isCancelled());
 
         // the task must not be finished
         assertTrue(eft.isFinished());
-
-        System.out.println(runnable);
 
     }
 
