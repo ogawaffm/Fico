@@ -3,7 +3,6 @@ package com.ogawa.fico.messagetemplate.appender;
 import static com.ogawa.fico.messagetemplate.MessageTemplate.checkVariableName;
 
 import com.ogawa.fico.messagetemplate.MessageTemplate;
-import lombok.ToString;
 
 /**
  * I1 MessageTemplateVariable represents a variable in a {@link MessageTemplate}. Its value can be resolved and appended

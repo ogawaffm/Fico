@@ -2,6 +2,7 @@ package com.ogawa.fico.scan.fileformat.office;
 
 import lombok.Getter;
 
+@SuppressWarnings("SpellCheckingInspection")
 public enum OfficeApplication {
 
     UNKNOWN("Unknown", "", ""),

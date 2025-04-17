@@ -7,9 +7,7 @@ import com.ogawa.fico.application.Application;
 import com.ogawa.fico.command.argument.CommandWithOptionalTwoArgs;
 import com.ogawa.fico.exception.InvalidCommandArgumentNumber;
 import com.ogawa.fico.exception.ServerError;
-import java.sql.SQLException;
 import lombok.extern.slf4j.Slf4j;
-import org.h2.jdbc.JdbcSQLNonTransientConnectionException;
 import org.h2.tools.Server;
 
 @Slf4j

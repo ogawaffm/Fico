@@ -25,7 +25,6 @@ import java.util.Stack;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import com.ogawa.fico.scan.fileformat.image.MediaMetadataReader;
-import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 
 @Slf4j
 public class PersistingFileVisitor implements FileVisitor<Path> {

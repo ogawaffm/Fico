@@ -1,7 +1,5 @@
 package com.ogawa.fico.db;
 
-import static com.ogawa.fico.db.Util.closeSilently;
-
 import java.sql.ResultSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;

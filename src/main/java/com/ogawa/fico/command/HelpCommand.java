@@ -5,7 +5,6 @@ import static com.ogawa.fico.application.Config.getResource;
 import com.ogawa.fico.application.Application;
 import com.ogawa.fico.application.Config;
 import com.ogawa.fico.command.argument.CommandWithNoArgs;
-import com.ogawa.fico.exception.CommandLineError;
 import com.ogawa.fico.exception.ErrorCode;
 import com.ogawa.fico.exception.InvalidCommandArgumentNumber;
 

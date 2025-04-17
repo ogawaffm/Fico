@@ -2,11 +2,6 @@ package com.ogawa.fico.db.persistence.beanwriter;
 
 import com.ogawa.fico.db.persistence.bindvarwriter.BindVarWriter;
 import com.ogawa.fico.db.persistence.rowmapper.RowMapper;
-import com.ogawa.fico.jdbc.JdbcTransferor;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import lombok.NonNull;
 
 /**

@@ -3,14 +3,9 @@ package com.ogawa.fico.command;
 import static com.ogawa.fico.application.Config.getServerShutdownPassword;
 
 import com.ogawa.fico.command.argument.CommandWithNoOrMoreArgs;
-import com.ogawa.fico.db.Util;
 import com.ogawa.fico.exception.InvalidCommandArgument;
 import com.ogawa.fico.exception.ServerError;
-import java.sql.Connection;
-import java.sql.SQLFeatureNotSupportedException;
 import org.h2.jdbc.JdbcSQLFeatureNotSupportedException;
-import org.h2.server.TcpServer;
-import org.h2.tools.Console;
 import org.h2.tools.Server;
 import lombok.extern.slf4j.Slf4j;
 

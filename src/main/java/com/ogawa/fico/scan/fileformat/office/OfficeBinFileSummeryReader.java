@@ -15,6 +15,7 @@ import org.apache.poi.poifs.eventfilesystem.POIFSReaderEvent;
 import org.apache.poi.poifs.eventfilesystem.POIFSReaderListener;
 import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class OfficeBinFileSummeryReader {
 
     private final static List<String> supportedBinaryFileTypes = Arrays.asList(

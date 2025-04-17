@@ -1,6 +1,5 @@
 package com.ogawa.fico.messagetemplate;
 
-import static com.ogawa.fico.messagetemplate.MessageTemplate.createVariableReference;
 import static com.ogawa.fico.messagetemplate.MessageTemplate.getNameFromVariableReference;
 
 import com.ogawa.fico.messagetemplate.appender.CustomVariableAppender;

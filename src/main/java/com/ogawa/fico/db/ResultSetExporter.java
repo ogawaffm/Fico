@@ -2,10 +2,8 @@ package com.ogawa.fico.db;
 
 import com.ogawa.fico.checksum.ChecksumBuilder;
 import java.io.PrintStream;
-import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Date;
 
 public class ResultSetExporter extends ResultSetDumper {

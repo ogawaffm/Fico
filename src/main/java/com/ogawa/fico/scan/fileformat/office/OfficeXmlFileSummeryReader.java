@@ -19,6 +19,7 @@ public class OfficeXmlFileSummeryReader {
         "xls", "ppt", "vsd", "accdb", "mdb"
     );
 
+    @SuppressWarnings("SpellCheckingInspection")
     private final static List<String> supportedXmlFileTypes = Arrays.asList(
         "docx", "docm",
         "xlsx", "xlsm",
