@@ -5,7 +5,6 @@ import java.security.MessageDigest;
 /**
  * Abstract class for building checksums
  *
- * @param <T> the type of the checksum builder
  * @param <S> the type of the source
  */
 public abstract class ChecksumBuilder<S> {

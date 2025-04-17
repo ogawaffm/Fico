@@ -56,6 +56,7 @@ public class TestUtils {
     public static void waitUntilNonNull(@NonNull AtomicReference referenceToCheck) {
         while (referenceToCheck.get() == null) {
             try {
+                //noinspection BusyWait
                 Thread.sleep(100);
             } catch (InterruptedException interruptedException) {
                 throw new RuntimeException(interruptedException);

@@ -1,7 +1,5 @@
 package com.ogawa.fico.service;
 
-import com.ogawa.fico.db.persistence.factory.FilePersistenceFactory;
-import com.ogawa.fico.db.persistence.factory.PersistenceFactory;
 import com.ogawa.fico.multithreading.ExtendedExecutorCompletionService;
 import com.ogawa.fico.multithreading.ExtendedFutureTask;
 import com.ogawa.fico.multithreading.ExtendedThreadFactory;
@@ -9,7 +7,6 @@ import com.ogawa.fico.multithreading.ExtendedThreadPoolExecutor;
 import com.ogawa.fico.multithreading.ThreadPoolExecutorStatistics;
 import com.ogawa.fico.multithreading.ThreadUtils;
 import com.ogawa.fico.scan.FileBean;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 

@@ -150,7 +150,7 @@ public class ExtendedFutureTaskTests {
 
         TestTask.waitUntilStarted(runnable);
 
-        assertTrue(!eft.isFinished());
+        assertFalse(eft.isFinished());
 
         // ******** cancel ********
         eft.cancel(true);

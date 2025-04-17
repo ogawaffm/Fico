@@ -76,6 +76,7 @@ public class ChecksumCalcService {
 
         while (!executor.isTerminated()) {
             try {
+                //noinspection BusyWait
                 Thread.sleep(100L);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

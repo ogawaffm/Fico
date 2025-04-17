@@ -17,10 +17,6 @@ public class Application {
 
     private static boolean isDatabaseSetByArgument = false;
 
-    static public String getDefaultDatabaseName() {
-        return defaultDatabaseName;
-    }
-
     static public boolean isDatabaseSetByArgument() {
         return isDatabaseSetByArgument;
     }

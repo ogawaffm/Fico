@@ -5,7 +5,6 @@ import static com.ogawa.fico.db.Util.getValue;
 
 import com.ogawa.fico.command.argument.CommandWithOneOptionalArg;
 import com.ogawa.fico.db.persistence.beanreader.BeanReader;
-import com.ogawa.fico.db.persistence.factory.PersistenceFactory;
 import com.ogawa.fico.db.persistence.factory.ScanPersistenceFactory;
 import com.ogawa.fico.performance.logging.Formatter;
 import com.ogawa.fico.scan.ScanBean;
