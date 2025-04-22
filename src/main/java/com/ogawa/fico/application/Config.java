@@ -1,6 +1,6 @@
 package com.ogawa.fico.application;
 
-import static org.h2.util.IOUtils.closeSilently;
+import static com.ogawa.fico.db.Util.closeSilently;
 
 import com.ogawa.fico.db.Util;
 import java.io.IOException;
