@@ -1,4 +1,6 @@
 @ECHO OFF
+REM Switch to utf-8 for umlauts
+chcp 65001>null
 SETLOCAL
 IF "%JAVA_HOME%" == "" (
     REM https://learn.microsoft.com/de-de/windows-server/administration/windows-commands/where
