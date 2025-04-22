@@ -38,8 +38,8 @@ use: fico [<HELP>|<START>|<STOP><CREATE>|<RESET>|<DROP>|<ADD>|<REMOVE>|<REPLACE>
 
 <REMOVE> - Remove all, one or multiple scans from the database
 
-    reset all
-    reset <ScanId> {<ScanId>}
+    remove all
+    remove <ScanId> {<ScanId>}
 
     <ScanId>       id of the scan to remove
 
