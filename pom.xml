@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.example</groupId>
   <artifactId>Fico</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>0.1</version>
 
   <properties>
     <java.version>11</java.version>
@@ -60,20 +60,11 @@
       <scope>provided</scope>
     </dependency>
 
-    <!--
-        <dependency>
-          <groupId>ch.qos.logback</groupId>
-          <artifactId>logback-core</artifactId>
-          <version>1.5.18</version>
-        </dependency>
-    -->
-
     <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>1.5.18</version>
-      <scope>compile</scope>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
 
@@ -90,15 +81,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!--
-        <dependency>
-          <groupId>org.codehaus.janino</groupId>
-          <artifactId>janino</artifactId>
-          <version>3.1.12</version>
-          <scope>test</scope>
-        </dependency>
-    -->
-
   </dependencies>
   <dependencyManagement>
     <dependencies>
@@ -106,6 +88,7 @@
   </dependencyManagement>
 
   <build>
+    <finalName>fico</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -115,7 +98,7 @@
           <archive>
             <manifest>
               <addClasspath>true</addClasspath>
-              <mainClass>com.ogawa.fico.Main</mainClass>
+              <mainClass>com.ogawa.fico.application.Main</mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -165,6 +148,22 @@
       <!--        </executions>-->
       <!--&ndash;&gt;-->
       <!--      </plugin>-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 

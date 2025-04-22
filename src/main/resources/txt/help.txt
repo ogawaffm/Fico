@@ -1,8 +1,8 @@
 use: fico [<HELP>|<START>|<STOP><CREATE>|<RESET>|<DROP>|<ADD>|<REMOVE>|<REPLACE>|<ANALYZE>|<LIST>|<EXPORT>]
 
-<HELP> - show help
+<HELP> - Show general help or help about the return codes
 
-    help
+    help [errorcodes]
 
 <START> - Start the database server
 
