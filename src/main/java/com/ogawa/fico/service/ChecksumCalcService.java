@@ -84,7 +84,7 @@ public class ChecksumCalcService {
         }
 
         while (statistics.getStartedCount() > statistics.getFinishedCount()) {
-            ThreadUtils.waitSeconds(1);
+            ThreadUtils.waitSeconds(3);
             showStatistics(executor, statistics);
         }
 
@@ -125,14 +125,14 @@ public class ChecksumCalcService {
 
 
     private List<ScanBean> createScanBeans(Connection connection) {
-        PersistenceFactory scanPersistenceFactory = new ScanPersistenceFactory(connection);
+        PersistenceFactory<ScanBean> scanPersistenceFactory = new ScanPersistenceFactory(connection);
         BeanReader<ScanBean> scanReader = scanPersistenceFactory.createTableReader();
         return scanReader.stream().collect(Collectors.toList());
     }
 
     void createPools(List<ScanBean> scanBeans) {
         Map<String, List<ScanBean>> scansBySource = scanBeans.stream()
-            .collect(Collectors.groupingBy((scan) -> getSource(scan)));
+            .collect(Collectors.groupingBy(this::getSource));
     }
 
     long clearChecksums() {
@@ -163,10 +163,10 @@ public class ChecksumCalcService {
 
         writeService.start();
 
-        SeekingBeanReader beanReader = filePersistenceFactory.createSeekingReader(getSql(calcMode.getSqlName()));
+        SeekingBeanReader<FileBean> beanReader = filePersistenceFactory.createSeekingReader(
+            getSql(calcMode.getSqlName()));
         beanReader.seek(new Object[]{scanIds});
 
-        //Callable<FileBean> callableFileChecksummer;
         CallableFileChecksummer callableFileChecksummer;
 
         ExtendedFutureTask<FileBean> futureTask;
@@ -266,10 +266,6 @@ public class ChecksumCalcService {
 
     static private final String UPDATE_DIRECTORY_CHECKSUM = "UpdateDirectoryChecksum";
 
-//    private static String toString(Long[] array) {
-//        return Arrays.stream(array).map(Object::toString).collect(Collectors.joining(", "));
-//    }
-
     private static String toString(Long[] array) {
         if (array == null) {
             return "null";
@@ -296,7 +292,7 @@ public class ChecksumCalcService {
                 if (pendingId != null) {
                     // Is this the continuation of a range?
                     if (pendingId == curId - 1) {
-                        // yes, just update the pendingId
+                        // yes, update the pendingId
                         pendingId = curId;
                     } else {
                         // no, it's the end of the range
@@ -347,7 +343,6 @@ public class ChecksumCalcService {
         return totalUpdatedDirCount;
 
     }
-
 
     public void calc() throws SQLException {
 

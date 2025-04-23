@@ -100,9 +100,6 @@ public class SimpleFileScanner extends FileScanner {
             scan.getScanId(), absoluteRootPath, dirCreator, fileCreator
         );
 
-//        scan.setFinished(LocalDateTime.now());
-//        scanUpdater.update(scan);
-
         try {
             fileVisitor.walk();
         } catch (IOException ioException) {
@@ -119,7 +116,6 @@ public class SimpleFileScanner extends FileScanner {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-//        scanRowWriter.updateFinished(scanId, new Date());
 
         log.info("Scan #{} added {} files from {} directories and total size of {} bytes to {} database",
             scan.getScanId(),
