@@ -2,33 +2,33 @@ package com.ogawa.fico.checksum;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import lombok.Getter;
 import lombok.NonNull;
 
 public class ChecksumStats implements Comparable<ChecksumStats> {
 
-    private ChecksumBuilder checksumBuilder;
+    private ChecksumBuilder<?> checksumBuilder;
     private String algorithmName;
+    @Getter
     private byte[] binaryChecksum;
+    @Getter
     private LocalDateTime timeStarted;
+    @Getter
     private LocalDateTime timeFinished;
 
-    public ChecksumStats(@NonNull ChecksumBuilder checksumBuilder) {
+    public ChecksumStats(@NonNull ChecksumBuilder<?> checksumBuilder) {
         this.checksumBuilder = checksumBuilder;
     }
 
     /**
-     * Returns the algorithm name. If finished the stored name is returned else this of the still active checksum
+     * Returns the algorithm name. If finished, the stored name is returned else this of the still active checksum
      * builder
      *
-     * @return
+     * @return the algorithm name
      */
 
     public String getAlgorithmName() {
         return isFinished() ? algorithmName : this.checksumBuilder.getAlgorithmName();
-    }
-
-    public byte[] getBinaryChecksum() {
-        return binaryChecksum;
     }
 
     public String getHexChecksum() {
@@ -50,14 +50,6 @@ public class ChecksumStats implements Comparable<ChecksumStats> {
 
     public boolean isFinished() {
         return timeFinished == null;
-    }
-
-    public LocalDateTime getTimeStarted() {
-        return timeStarted;
-    }
-
-    public LocalDateTime getTimeFinished() {
-        return timeFinished;
     }
 
     public Duration getDuration() {
