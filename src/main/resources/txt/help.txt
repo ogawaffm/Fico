@@ -45,7 +45,14 @@ use: fico [<HELP>|<START>|<STOP><CREATE>|<RESET>|<DROP>|<ADD>|<REMOVE>|<REPLACE>
 
 <ANALYZE> - Analyze all files of all scans of the database for duplicates
 
-    analyze
+    analyze [<CalcMode>]
+
+    <CalcMode> (Default is SAME_SIZE)
+        CLEAR                 Clear file checksums
+        ALL                   All files
+        SAME_SIZE             Files for which at least one file with the same size exists
+        SAME_NAME_AND_SIZE    Files for which at least one file with the same name and size exists
+        SAME_SIZE_IN_SAME_DIR Files for which at least one file in the same directory with the same size exists
 
 <LIST> - List all scans, scan statistics or files in the database
 
